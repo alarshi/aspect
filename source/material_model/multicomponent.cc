@@ -20,6 +20,7 @@
 
 
 #include <aspect/material_model/multicomponent.h>
+#include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/simulator.h>
 #include <aspect/utilities.h>
 
@@ -87,6 +88,7 @@ namespace aspect
     {
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {
+          const Point<dim> position = in.position[i];
           const double temperature = in.temperature[i];
           const std::vector<double> composition = in.composition[i];
           const std::vector<double> volume_fractions = compute_volume_fractions(composition);
@@ -105,7 +107,8 @@ namespace aspect
             {
               // not strictly correct if thermal expansivities are different, since we are interpreting
               // these compositions as volume fractions, but the error introduced should not be too bad.
-              const double temperature_factor= (1.0 - thermal_expansivities[j] * (temperature - reference_T));
+              const double temperature_factor= (1.0 - thermal_expansivities[j] * 
+(temperature - this->get_adiabatic_conditions().temperature(position)));
               density += volume_fractions[j] * densities[j] * temperature_factor;
             }
           out.densities[i] = density;
