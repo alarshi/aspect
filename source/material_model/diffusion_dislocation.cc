@@ -229,6 +229,7 @@ namespace aspect
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {
           // const Point<dim> position = in.position[i];
+          const Point<dim> position = in.position[i];
           const double temperature = in.temperature[i];
           const double pressure= in.pressure[i];
           const std::vector<double> composition = in.composition[i];
@@ -238,13 +239,16 @@ namespace aspect
 
           // densities
           double density = 0.0;
-          for (unsigned int j=0; j < volume_fractions.size(); ++j)
-            {
+          unsigned int j = 0.0;
+       //   for (unsigned int j=0; j < volume_fractions.size(); ++j)
+         //   {
               // not strictly correct if thermal expansivities are different, since we are interpreting
               // these compositions as volume fractions, but the error introduced should not be too bad.
-              const double temperature_factor= (1.0 - thermal_expansivities[j] * (temperature - reference_T));
-              density += volume_fractions[j] * densities[j] * temperature_factor;
-            }
+          const double temperature_factor= (1.0 - thermal_expansivities[j] * (temperature - 
+this->get_adiabatic_conditions().temperature(position)));
+           density += volume_fractions[j] * this->get_adiabatic_conditions().density(position) 
+* temperature_factor;
+           // }
 
           // thermal expansivities
           double thermal_expansivity = 0.0;
