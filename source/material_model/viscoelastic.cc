@@ -185,7 +185,7 @@ namespace aspect
 
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {
-          const double temperature = in.temperature[i];
+         // const double temperature = in.temperature[i]; **************
           const std::vector<double> composition = in.composition[i];
           const std::vector<double> volume_fractions = compute_volume_fractions(composition, composition_mask);
 
@@ -197,12 +197,13 @@ namespace aspect
           out.thermal_conductivities[i] = average_value(volume_fractions, thermal_conductivities, arithmetic);
 
           double density = 0.0;
+
           for (unsigned int j=0; j < volume_fractions.size(); ++j)
             {
               // not strictly correct if thermal expansivities are different, since we are interpreting
               // these compositions as volume fractions, but the error introduced should not be too bad.
-              const double temperature_factor= (1.0 - thermal_expansivities[j] * (temperature - reference_T));
-              density += volume_fractions[j] * densities[j] * temperature_factor;
+             // const double temperature_factor= (1.0 - thermal_expansivities[j] * (temperature - reference_T));
+              density += volume_fractions[j] * densities[j];// * temperature_factor;
             }
           out.densities[i] = density;
 

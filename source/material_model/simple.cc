@@ -45,8 +45,8 @@ namespace aspect
                :
                1.0);
 
-          if (in.position[i][2] > 200.e3)
-        	  out.viscosities[i] = 1.e25;
+          if (in.position[i][2] > 100.e3)
+        	  out.viscosities[i] = 1.e20;
           else if (in.position[i][2] > 80.e3 && in.position[i][2] < 200.e3)
         	  out.viscosities[i] = 1.e21;
           else
