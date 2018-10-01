@@ -707,19 +707,6 @@ namespace aspect
       return phase_index;
     }
 
-    template <int dim>
-    void
-    GrainSize<dim>::
-    convert_log_grain_size (std::vector<double> &composition) const
-    {
-      // get grain size and limit it to a global minimum
-      const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
-      double grain_size = composition[grain_size_index];
-      grain_size = std::max(std::exp(-grain_size),min_grain_size);
-
-      composition[grain_size_index] = grain_size;
-    }
-
 
 
     template <int dim>
@@ -1289,15 +1276,9 @@ namespace aspect
                                   :
                                   in.pressure[i];
 
-          // convert the grain size from log to normal
           std::vector<double> composition (in.composition[i]);
-          if (advect_log_grainsize)
-            convert_log_grain_size(composition);
-          else
-            {
-              const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
-              composition[grain_size_index] = std::max(min_grain_size,composition[grain_size_index]);
-            }
+		  const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
+		  composition[grain_size_index] = std::max(min_grain_size, composition[grain_size_index]);
 
           // set up an integer that tells us which phase transition has been crossed inside of the cell
           int crossed_transition(-1);
