@@ -61,26 +61,14 @@ namespace aspect
 
 
     template <int dim>
-    void
-    EquilibriumGrainSize<dim>::initialize()
+    double
+    EquilibriumGrainSize<dim>::equilibrium_grain_size(const double      temperature,
+        const double      pressure,
+        const std::vector<double>    &compositional_fields,
+        const SymmetricTensor<2,dim> &strain_rate,
+        const Point<dim> &position) const
     {
-      n_material_data = material_file_names.size();
-      for (unsigned i = 0; i < n_material_data; i++)
-        {
-          if (material_file_format == perplex)
-            material_lookup.push_back(std::shared_ptr<Lookup::MaterialLookup>
-                                      (new Lookup::PerplexReader(datadirectory+material_file_names[i],
-                                                                 use_bilinear_interpolation,
-                                                                 this->get_mpi_communicator())));
-          else if (material_file_format == hefesto)
-            material_lookup.push_back(std::shared_ptr<Lookup::MaterialLookup>
-                                      (new Lookup::HeFESToReader(datadirectory+material_file_names[i],
-                                                                 datadirectory+derivatives_file_names[i],
-                                                                 use_bilinear_interpolation,
-                                                                 this->get_mpi_communicator())));
-          else
-            AssertThrow (false, ExcNotImplemented());
-        }
+      return 0.0;
     }
 
 
