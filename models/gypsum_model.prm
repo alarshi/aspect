@@ -1,13 +1,25 @@
-set Dimension                              = 2
+set Dimension                              = 3
 set Use years in output instead of seconds = true
 set Start time                             = 0
 set End time                               = 0
 set Nonlinear solver scheme                = no Advection, iterated Stokes
 
 subsection Compositional fields
-  set Number of fields = 1
-  set Names of fields = grain_size
+  set Number of fields = 4
+  set Names of fields = grain_size, gypsum_density, gypsum_vs, gypsum_vp
+  set Compositional field methods = static
 end
+
+
+subsection Initial composition model
+  set List of model names = ascii data
+
+  subsection Ascii data model
+    set Data directory = ../input_data/
+    set Data file name = shell_3d.txt
+  end
+end
+
 
 subsection Material model
   set Model name = grain size
@@ -85,8 +97,11 @@ end
 
 
 subsection Initial temperature model
-  set Model name = ascii data
+  set List of model names = ascii data
+
   subsection Ascii data model
+    set Data directory = ../input_data/
+    set Data file name = shell_3d_temperature.txt
   end
 end
 
