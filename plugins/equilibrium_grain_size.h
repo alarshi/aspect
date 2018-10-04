@@ -203,23 +203,14 @@ namespace aspect
         double min_grain_size;
         double pv_grain_size_scaling;
 
-        double viscosity (const double                  temperature,
-                          const double                  pressure,
-                          const std::vector<double>    &compositional_fields,
-                          const SymmetricTensor<2,dim> &strain_rate,
-                          const Point<dim>             &position) const;
-
         double diffusion_viscosity (const double      temperature,
                                     const double      pressure,
                                     const std::vector<double>    &compositional_fields,
                                     const SymmetricTensor<2,dim> &,
                                     const Point<dim> &position) const;
 
-        double equilibrium_grain_size (const double      temperature,
-                                    const double      pressure,
-                                    const std::vector<double>    &compositional_fields,
-                                    const SymmetricTensor<2,dim> &strain_rate,
-                                    const Point<dim> &position) const;
+        void compute_equilibrium_grain_size (const typename Interface<dim>::MaterialModelInputs &in,
+                                             typename Interface<dim>::MaterialModelOutputs      &out) const;
 
         /**
          * This function calculates the dislocation viscosity. For this purpose
@@ -237,7 +228,7 @@ namespace aspect
                                       const std::vector<double>    &compositional_fields,
                                       const SymmetricTensor<2,dim> &strain_rate,
                                       const Point<dim> &position,
-                                      const double viscosity_guess = 0) const;
+                                      const double      viscosity_guess = 0) const;
 
         /**
          * This function calculates the dislocation viscosity for a given
@@ -245,8 +236,7 @@ namespace aspect
          */
         double dislocation_viscosity_fixed_strain_rate (const double      temperature,
                                                         const double      pressure,
-                                                        const std::vector<double> &,
-                                                        const SymmetricTensor<2,dim> &dislocation_strain_rate,
+                                                        const double      second_strain_rate_invariant,
                                                         const Point<dim> &position) const;
 
         double density (const double temperature,

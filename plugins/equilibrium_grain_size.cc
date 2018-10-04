@@ -61,55 +61,94 @@ namespace aspect
 
 
     template <int dim>
-    double
-    EquilibriumGrainSize<dim>::equilibrium_grain_size(const double      temperature,
-        const double      pressure,
-        const std::vector<double>    &composition,
-        const SymmetricTensor<2,dim> &strain_rate,
-        const Point<dim> &position) const
+    void
+    EquilibriumGrainSize<dim>::compute_equilibrium_grain_size(const typename Interface<dim>::MaterialModelInputs &in,
+                                                              typename Interface<dim>::MaterialModelOutputs &out) const
     {
-      // Computed according to equation (7) in Dannberg et al., 2016, using the paleowattmeter grain size.
-  	  // Austin and Evans (2007): Paleowattmeters: A scaling relation for dynamically recrystallized grain size. Geology 35, 343-346.
-      const unsigned int phase_index = get_phase_index(position, temperature, pressure);
-      const double prefactor = geometric_constant[phase_index] * grain_boundary_energy[phase_index] * grain_growth_rate_constant[phase_index]
-							   / (boundary_area_change_work_fraction[phase_index] * grain_growth_exponent[phase_index]);
-      const double exponential = std::exp(- (grain_growth_activation_energy[phase_index] + pressure * grain_growth_activation_volume[phase_index])
-                                 / (constants::gas_constant * temperature));
+	  PrescribedFieldOutputs<dim> *grain_size_out = out.template get_additional_output<PrescribedFieldOutputs<dim> >();
+      DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim> >();
 
-      // get the dislocation viscosity to compute the dislocation strain rate
-      const SymmetricTensor<2,dim> shear_strain_rate = strain_rate - 1./dim * trace(strain_rate) * unit_symmetric_tensor<dim>();
-      const double second_strain_rate_invariant = std::sqrt(std::abs(second_invariant(shear_strain_rate)));
+      const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
 
-      double diff_viscosity;
-      double disl_viscosity = dislocation_viscosity_fixed_strain_rate(temperature, pressure, composition, strain_rate, position);
-
-      unsigned int i = 0;
-      double old_grain_size = 0.0;
-      double grain_size = composition[this->introspection().compositional_index_for_name("grain_size")];
-
-      // because the diffusion viscosity depends on the grain size itself, and we need it to compute the dislocation strain rate,
-      // we have to iterate in the computation of the eqilibrium grain size
-      while ((std::abs((grain_size-old_grain_size) / grain_size) > dislocation_viscosity_iteration_threshold)
-             && (i < dislocation_viscosity_iteration_number))
+      for (unsigned int i=0; i<in.position.size(); ++i)
         {
-    	  diff_viscosity = diffusion_viscosity(temperature, pressure, composition, strain_rate, position);
-    	  disl_viscosity = dislocation_viscosity(temperature, pressure, composition, strain_rate, position, disl_viscosity);
+          // Use the adiabatic pressure instead of the real one, because of oscillations
+          const double pressure = (this->get_adiabatic_conditions().is_initialized())
+                                  ?
+                                  this->get_adiabatic_conditions().pressure(in.position[i])
+                                  :
+                                  in.pressure[i];
 
-          double effective_viscosity = diff_viscosity;
-          if (std::abs(second_strain_rate_invariant) > 1e-30)
-        	  effective_viscosity = diff_viscosity * disl_viscosity / (disl_viscosity + diff_viscosity);
+		  // Computed according to equation (7) in Dannberg et al., 2016, using the paleowattmeter grain size.
+		  // Austin and Evans (2007): Paleowattmeters: A scaling relation for dynamically recrystallized grain size. Geology 35, 343-346.
+		  const unsigned int phase_index = get_phase_index(in.position[i], in.temperature[i], pressure);
+		  const double prefactor = geometric_constant[phase_index] * grain_boundary_energy[phase_index] * grain_growth_rate_constant[phase_index]
+								   / (boundary_area_change_work_fraction[phase_index] * grain_growth_exponent[phase_index]);
+		  const double exponential = std::exp(- (grain_growth_activation_energy[phase_index] + pressure * grain_growth_activation_volume[phase_index])
+									 / (constants::gas_constant * in.temperature[i]));
 
-          // This follows from Equation (S25 - S30)
-          const double dislocation_strain_rate_invariant = second_strain_rate_invariant
-                                                           * effective_viscosity / disl_viscosity;
-          const double stress_term = 4.0 * effective_viscosity * second_strain_rate_invariant * dislocation_strain_rate_invariant;
+		  // get the dislocation viscosity to compute the dislocation strain rate
+	      // If we do not have the strain rate yet, set it to a low value.
+	      // TODO: make minimum strain rate an input parameter
+	      const SymmetricTensor<2,dim> shear_strain_rate = in.strain_rate[i] - 1./dim * trace(in.strain_rate[i]) * unit_symmetric_tensor<dim>();
+	      const double second_strain_rate_invariant = std::sqrt(std::abs(second_invariant(shear_strain_rate)));
 
-          old_grain_size = grain_size;
-          grain_size = pow(prefactor/stress_term * exponential,1./(1+grain_growth_exponent[phase_index]));
+		  // TODO: if we update the interface of the diffusion_viscosity and dislocation_viscosity functions,
+		  // we don't need this vector anymore
+		  std::vector<double> composition (in.composition[i]);
+		  double grain_size = in.composition[i][this->introspection().compositional_index_for_name("grain_size")];
+		  grain_size = std::max(min_grain_size, grain_size);
 
-          ++i;
+		  double diff_viscosity;
+		  double disl_viscosity;
+		  double effective_viscosity = diffusion_viscosity(in.temperature[i], pressure, composition, in.strain_rate[i], in.position[i]);
+
+		  // If we do not have the strain rate, there is no equilibrium grain size
+		  if(second_strain_rate_invariant > 1e-30)
+		    {
+			  unsigned int j = 0;
+			  double old_grain_size = 0.0;
+
+			  // because the diffusion viscosity depends on the grain size itself, and we need it to compute the dislocation strain rate,
+			  // we have to iterate in the computation of the eqilibrium grain size
+			  while ((std::abs((grain_size-old_grain_size) / grain_size) > dislocation_viscosity_iteration_threshold)
+					 && (j < dislocation_viscosity_iteration_number))
+				{
+				  composition[grain_size_index] = std::max(min_grain_size, grain_size);
+				  diff_viscosity = diffusion_viscosity(in.temperature[i], pressure, composition, in.strain_rate[i], in.position[i]);
+				  disl_viscosity = dislocation_viscosity(in.temperature[i], pressure, composition, in.strain_rate[i], in.position[i], disl_viscosity);
+
+				  effective_viscosity = diff_viscosity;
+				  if (std::abs(second_strain_rate_invariant) > 1e-30)
+					  effective_viscosity = diff_viscosity * disl_viscosity / (disl_viscosity + diff_viscosity);
+
+				  // This follows from Equation (S25 - S30)
+				  const double dislocation_strain_rate_invariant = second_strain_rate_invariant
+																   * effective_viscosity / disl_viscosity;
+				  const double stress_term = 4.0 * effective_viscosity * second_strain_rate_invariant * dislocation_strain_rate_invariant;
+
+				  old_grain_size = grain_size;
+				  grain_size = std::max(min_grain_size, pow(prefactor/stress_term * exponential,1./(1+grain_growth_exponent[phase_index])));
+
+				  ++j;
+				}
+		    }
+
+          if (grain_size_out != NULL)
+        	for (unsigned int c=0; c<composition.size(); ++c)
+              {
+        		if(c == grain_size_index)
+        	      grain_size_out->prescribed_field_outputs[i][c] = std::min(std::max(min_grain_size,grain_size), min_grain_size * 1.e5);
+        		else
+        		  grain_size_out->prescribed_field_outputs[i][c] = 0.0;
+              }
+
+          out.viscosities[i] = std::min(std::max(min_eta,effective_viscosity),max_eta);
+
+          if (disl_viscosities_out != NULL)
+            disl_viscosities_out->dislocation_viscosities[i] = std::min(std::max(min_eta,disl_viscosity),1e300);
         }
-      return grain_size;
+	  return;
     }
 
 
@@ -383,27 +422,28 @@ namespace aspect
                            const Point<dim> &position,
                            const double viscosity_guess) const
     {
-      const double diff_viscosity = diffusion_viscosity(temperature,pressure,composition,strain_rate,position) ;
+      const double diff_viscosity = diffusion_viscosity(temperature,pressure,composition,strain_rate,position);
+
+      // If we do not have the strain rate yet, set it to a low value.
+      // TODO: make minimum strain rate an input parameter
+      const SymmetricTensor<2,dim> shear_strain_rate = strain_rate - 1./dim * trace(strain_rate) * unit_symmetric_tensor<dim>();
+      const double second_strain_rate_invariant = std::max(std::sqrt(std::abs(second_invariant(shear_strain_rate))),1e-30);
 
       // Start the iteration with the full strain rate
-      double dis_viscosity;
+      double dis_viscosity = viscosity_guess;
       if (viscosity_guess == 0)
-        dis_viscosity = dislocation_viscosity_fixed_strain_rate(temperature,pressure,std::vector<double>(),strain_rate,position);
-      else
-        dis_viscosity = viscosity_guess;
+        dis_viscosity = dislocation_viscosity_fixed_strain_rate(temperature,pressure,second_strain_rate_invariant,position);
 
       double dis_viscosity_old = 0;
       unsigned int i = 0;
       while ((std::abs((dis_viscosity-dis_viscosity_old) / dis_viscosity) > dislocation_viscosity_iteration_threshold)
              && (i < dislocation_viscosity_iteration_number))
         {
-          const SymmetricTensor<2,dim> dislocation_strain_rate = diff_viscosity
-                                                                 / (diff_viscosity + dis_viscosity) * strain_rate;
+          const double dislocation_strain_rate = diff_viscosity / (diff_viscosity + dis_viscosity) * second_strain_rate_invariant;
           dis_viscosity_old = dis_viscosity;
           dis_viscosity = dislocation_viscosity_fixed_strain_rate(temperature,
                                                                   pressure,
-                                                                  std::vector<double>(),
-                                                                  dislocation_strain_rate,
+																  dislocation_strain_rate,
                                                                   position);
           ++i;
         }
@@ -420,24 +460,13 @@ namespace aspect
     EquilibriumGrainSize<dim>::
     dislocation_viscosity_fixed_strain_rate (const double      temperature,
                                              const double      pressure,
-                                             const std::vector<double> &,
-                                             const SymmetricTensor<2,dim> &dislocation_strain_rate,
+                                             const double      second_strain_rate_invariant,
                                              const Point<dim> &position) const
     {
-      const SymmetricTensor<2,dim> shear_strain_rate = dislocation_strain_rate - 1./dim * trace(dislocation_strain_rate) * unit_symmetric_tensor<dim>();
-      const double second_strain_rate_invariant = std::sqrt(std::abs(second_invariant(shear_strain_rate)));
-
-      // Currently this will never be called without adiabatic_conditions initialized, but just in case
-      const double adiabatic_pressure = this->get_adiabatic_conditions().is_initialized()
-                                        ?
-                                        this->get_adiabatic_conditions().pressure(position)
-                                        :
-                                        pressure;
-
       // find out in which phase we are
-      const unsigned int phase_index = get_phase_index(position, temperature, adiabatic_pressure);
+      const unsigned int phase_index = get_phase_index(position, temperature, pressure);
 
-      double energy_term = exp((dislocation_activation_energy[phase_index] + dislocation_activation_volume[phase_index] * adiabatic_pressure)
+      double energy_term = exp((dislocation_activation_energy[phase_index] + dislocation_activation_volume[phase_index] * pressure)
                                / (dislocation_creep_exponent[phase_index] * constants::gas_constant * temperature));
 
       // If we are past the initialization of the adiabatic profile, use it to
@@ -445,7 +474,7 @@ namespace aspect
       if (this->get_adiabatic_conditions().is_initialized())
         {
           const double adiabatic_energy_term
-            = exp((dislocation_activation_energy[phase_index] + dislocation_activation_volume[phase_index] * adiabatic_pressure)
+            = exp((dislocation_activation_energy[phase_index] + dislocation_activation_volume[phase_index] * pressure)
                   / (dislocation_creep_exponent[phase_index] * constants::gas_constant * this->get_adiabatic_conditions().temperature(position)));
 
           const double temperature_dependence = energy_term / adiabatic_energy_term;
@@ -460,34 +489,6 @@ namespace aspect
       return std::pow(dislocation_creep_prefactor[phase_index],-1.0/dislocation_creep_exponent[phase_index])
              * std::pow(second_strain_rate_invariant,strain_rate_dependence)
              * energy_term;
-    }
-
-
-
-    template <int dim>
-    double
-    EquilibriumGrainSize<dim>::
-    viscosity (const double temperature,
-               const double pressure,
-               const std::vector<double> &composition,
-               const SymmetricTensor<2,dim> &strain_rate,
-               const Point<dim> &position) const
-    {
-      const SymmetricTensor<2,dim> shear_strain_rate = strain_rate - 1./dim * trace(strain_rate) * unit_symmetric_tensor<dim>();
-      const double second_strain_rate_invariant = std::sqrt(std::abs(second_invariant(shear_strain_rate)));
-
-      const double diff_viscosity = diffusion_viscosity(temperature, pressure, composition, strain_rate, position);
-
-      double effective_viscosity;
-      if (std::abs(second_strain_rate_invariant) > 1e-30)
-        {
-          const double disl_viscosity = dislocation_viscosity(temperature, pressure, composition, strain_rate, position);
-          effective_viscosity = disl_viscosity * diff_viscosity / (disl_viscosity + diff_viscosity);
-        }
-      else
-        effective_viscosity = diff_viscosity;
-
-      return effective_viscosity;
     }
 
 
@@ -744,6 +745,10 @@ namespace aspect
     EquilibriumGrainSize<dim>::
     evaluate(const typename Interface<dim>::MaterialModelInputs &in, typename Interface<dim>::MaterialModelOutputs &out) const
     {
+	  // This function will fill the outputs for grain size, viscosity, and dislocation viscosity
+      if (in.strain_rate.size() > 0)
+        compute_equilibrium_grain_size(in, out);
+
       for (unsigned int i=0; i<in.position.size(); ++i)
         {
           // Use the adiabatic pressure instead of the real one, because of oscillations
@@ -753,101 +758,16 @@ namespace aspect
                                   :
                                   in.pressure[i];
 
-          std::vector<double> composition (in.composition[i]);
-		  const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
-		  composition[grain_size_index] = std::max(min_grain_size, composition[grain_size_index]);
-
-          // set up an integer that tells us which phase transition has been crossed inside of the cell
-          int crossed_transition(-1);
-
-          // Figure out if the material in the current cell underwent a phase change.
-          // We need to consider if the adiabatic profile is already calculated. If so
-          // use the default position of the phase change, and the deviation in temperature
-          // and pressure to compute if the phase change happens at the current pressure.
-          // If so, check if the velocity is in the direction of the phase change to determine
-          // whether we already crossed phase transition 'phase'. After the check 'phase' will
-          // be -1 if we crossed no transition, or the number of the transition, if we crossed it.
-          // If the adiabatic profile is not yet available, use the default position of the
-          // transition and do not worry about pressure deviations.
-          if (this->get_adiabatic_conditions().is_initialized())
-            for (unsigned int phase=0; phase<transition_depths.size(); ++phase)
-              {
-                // first, get the pressure at which the phase transition occurs normally
-                const Point<dim,double> transition_point = this->get_geometry_model().representative_point(transition_depths[phase]);
-                const Point<dim,double> transition_plus_width = this->get_geometry_model().representative_point(transition_depths[phase] + transition_widths[phase]);
-                const Point<dim,double> transition_minus_width = this->get_geometry_model().representative_point(transition_depths[phase] - transition_widths[phase]);
-                const double transition_pressure = this->get_adiabatic_conditions().pressure(transition_point);
-                const double pressure_width = 0.5 * (this->get_adiabatic_conditions().pressure(transition_plus_width)
-                                                     - this->get_adiabatic_conditions().pressure(transition_minus_width));
-
-
-                // then calculate the deviation from the transition point (both in temperature
-                // and in pressure)
-                double pressure_deviation = pressure - transition_pressure
-                                            - transition_slopes[phase] * (in.temperature[i] - transition_temperatures[phase]);
-
-                // If we are close to the the phase boundary (pressure difference
-                // is smaller than phase boundary width), and the velocity points
-                // away from the phase transition the material has crossed the transition.
-                if ((std::abs(pressure_deviation) < pressure_width)
-                    &&
-                    ((in.velocity[i] * this->get_gravity_model().gravity_vector(in.position[i])) * pressure_deviation > 0))
-                  crossed_transition = phase;
-              }
-          else
-            for (unsigned int j=0; j<in.position.size(); ++j)
-              for (unsigned int k=0; k<transition_depths.size(); ++k)
-                if ((phase_function(in.position[i], in.temperature[i], pressure, k)
-                     != phase_function(in.position[j], in.temperature[j], in.pressure[j], k))
-                    &&
-                    ((in.velocity[i] * this->get_gravity_model().gravity_vector(in.position[i]))
-                     * ((in.position[i] - in.position[j]) * this->get_gravity_model().gravity_vector(in.position[i])) > 0))
-                  crossed_transition = k;
-
-
-          if (in.strain_rate.size() > 0)
-            {
-              double effective_viscosity;
-              double disl_viscosity = std::numeric_limits<double>::max();
-
-              const SymmetricTensor<2,dim> shear_strain_rate = in.strain_rate[i] - 1./dim * trace(in.strain_rate[i]) * unit_symmetric_tensor<dim>();
-              const double second_strain_rate_invariant = std::sqrt(std::abs(second_invariant(shear_strain_rate)));
-
-              const double diff_viscosity = diffusion_viscosity(in.temperature[i], pressure, composition, in.strain_rate[i], in.position[i]);
-
-              if (std::abs(second_strain_rate_invariant) > 1e-30)
-                {
-                  disl_viscosity = dislocation_viscosity(in.temperature[i], pressure, composition, in.strain_rate[i], in.position[i]);
-                  effective_viscosity = disl_viscosity * diff_viscosity / (disl_viscosity + diff_viscosity);
-                }
-              else
-                effective_viscosity = diff_viscosity;
-
-              out.viscosities[i] = std::min(std::max(min_eta,effective_viscosity),max_eta);
-
-              if (DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim> >())
-                disl_viscosities_out->dislocation_viscosities[i] = std::min(std::max(min_eta,disl_viscosity),1e300);
-            }
-
-          out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
-          out.thermal_conductivities[i] = k_value;
-          out.compressibilities[i] = compressibility(in.temperature[i], pressure, composition, in.position[i]);
-
           if (DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim> >())
             disl_viscosities_out->boundary_area_change_work_fractions[i] =
               boundary_area_change_work_fraction[get_phase_index(in.position[i],in.temperature[i],pressure)];
 
-          if (in.strain_rate.size() > 0)
-            for (unsigned int c=0; c<composition.size(); ++c)
-              {
-                if (this->introspection().name_for_compositional_index(c) == "grain_size")
-                  {
-                    out.reaction_terms[i][c] = grain_size_change(in.temperature[i], pressure, composition,
-                                                                 in.strain_rate[i], in.velocity[i], in.position[i], c, crossed_transition);
-                  }
-                else
-                  out.reaction_terms[i][c] = 0.0;
-              }
+          out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
+          out.thermal_conductivities[i] = k_value;
+          out.compressibilities[i] = compressibility(in.temperature[i], pressure, in.composition[i], in.position[i]);
+
+          for (unsigned int c=0; c<in.composition[i].size(); ++c)
+            out.reaction_terms[i][c] = 0.0;
 
           // fill seismic velocities outputs if they exist
           if (use_table_properties)
@@ -1438,8 +1358,18 @@ namespace aspect
             (new MaterialModel::DislocationViscosityOutputs<dim> (n_points)));
         }
 
-      // These properties are only output properties.
-      if (out.template get_additional_output<SeismicAdditionalOutputs<dim> >() == nullptr)
+      // We need the prescribed field outputs to interpolate the grain size onto a compositional field.
+      if (out.template get_additional_output<PrescribedFieldOutputs<dim> >() == NULL)
+        {
+          const unsigned int n_points = out.viscosities.size();
+          out.additional_outputs.push_back(
+            std::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >
+            (new MaterialModel::PrescribedFieldOutputs<dim> (n_points, this->n_compositional_fields())));
+        }
+
+      // These properties are only output properties. But we should only create them if they are filled.
+      if (use_table_properties
+          && out.template get_additional_output<SeismicAdditionalOutputs<dim> >() == nullptr)
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
