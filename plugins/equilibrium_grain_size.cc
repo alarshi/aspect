@@ -614,6 +614,8 @@ namespace aspect
       if (in.strain_rate.size() > 0)
         compute_equilibrium_grain_size(in, out);
 
+      const unsigned int density_index = this->introspection().compositional_index_for_name("gypsum_density");
+
       for (unsigned int i=0; i<in.position.size(); ++i)
         {
           // Use the adiabatic pressure instead of the real one, because of oscillations
@@ -627,9 +629,11 @@ namespace aspect
             disl_viscosities_out->boundary_area_change_work_fractions[i] =
               boundary_area_change_work_fraction[get_phase_index(in.position[i],in.temperature[i],pressure)];
 
-          out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
+          out.densities[i] = in.composition[i][density_index];
           out.thermal_conductivities[i] = k_value;
           out.compressibilities[i] = compressibility(in.temperature[i], pressure, in.composition[i], in.position[i]);
+          out.specific_heat[i] = reference_specific_heat;
+          out.thermal_expansion_coefficients[i] = thermal_alpha;
 
           for (unsigned int c=0; c<in.composition[i].size(); ++c)
             out.reaction_terms[i][c] = 0.0;
@@ -641,72 +645,6 @@ namespace aspect
                 seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
                 seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
               }
-        }
-
-      /* We separate the calculation of specific heat and thermal expansivity,
-       * because they depend on cell-wise averaged values that are only available
-       * here
-       */
-      double average_temperature(0.0);
-      double average_density(0.0);
-      for (unsigned int i = 0; i < in.position.size(); ++i)
-        {
-          average_temperature += in.temperature[i];
-          average_density += out.densities[i];
-        }
-      average_temperature /= in.position.size();
-      average_density /= in.position.size();
-
-      std::array<std::pair<double, unsigned int>,2> dH;
-
-      if (use_table_properties && use_enthalpy)
-        dH = enthalpy_derivative(in);
-
-      for (unsigned int i = 0; i < in.position.size(); ++i)
-        {
-          //Use the adiabatic pressure instead of the real one, because of oscillations
-          const double pressure = (this->get_adiabatic_conditions().is_initialized())
-                                  ?
-                                  this->get_adiabatic_conditions().pressure(in.position[i])
-                                  :
-                                  in.pressure[i];
-
-          if (!use_table_properties)
-            {
-              out.thermal_expansion_coefficients[i] = thermal_alpha;
-              out.specific_heat[i] = reference_specific_heat;
-            }
-          else if (use_enthalpy)
-            {
-              if (this->get_adiabatic_conditions().is_initialized()
-                  && (in.current_cell.state() == IteratorState::valid)
-                  && (dH[0].second > 0)
-                  && (dH[1].second > 0))
-                {
-                  out.thermal_expansion_coefficients[i] = (1 - average_density * dH[1].first) / average_temperature;
-                  out.specific_heat[i] = dH[0].first;
-                }
-              else
-                {
-                  if (material_lookup.size() == 1)
-                    {
-                      out.thermal_expansion_coefficients[i] = (1 - out.densities[i] * material_lookup[0]->dHdp(in.temperature[i],pressure)) / in.temperature[i];
-                      out.specific_heat[i] = material_lookup[0]->dHdT(in.temperature[i],pressure);
-                    }
-                  else
-                    {
-                      ExcNotImplemented();
-                    }
-                }
-            }
-          else
-            {
-              out.thermal_expansion_coefficients[i] = thermal_expansion_coefficient(in.temperature[i], pressure, in.composition[i], in.position[i]);
-              out.specific_heat[i] = specific_heat(in.temperature[i], pressure, in.composition[i], in.position[i]);
-            }
-
-          out.thermal_expansion_coefficients[i] = std::max(std::min(out.thermal_expansion_coefficients[i],max_thermal_expansivity),min_thermal_expansivity);
-          out.specific_heat[i] = std::max(std::min(out.specific_heat[i],max_specific_heat),min_specific_heat);
         }
     }
 

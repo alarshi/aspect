@@ -22,7 +22,6 @@
 #ifndef _aspect_model_equilibrium_grain_size_h
 #define _aspect_model_equilibrium_grain_size_h
 
-#include <aspect/material_model/interface.h>
 #include <aspect/material_model/grain_size.h>
 #include <aspect/simulator_access.h>
 #include <array>
