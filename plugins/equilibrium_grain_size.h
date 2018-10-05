@@ -209,6 +209,23 @@ namespace aspect
                                     const SymmetricTensor<2,dim> &,
                                     const Point<dim> &position) const;
 
+       /**
+        * Compute the equilibrium grain size for a given temperature and
+        * pressure.
+        * This computation is based on the rate of grain size growth
+        * (Ostwald ripening) or reduction(due to dynamic recrystallization
+        * and phase transformations) in dependence on temperature, pressure,
+        * strain rate, mineral phase and creep regime.
+        * We use the grain size growth laws as for example described
+        * in Behn, M. D., Hirth, G., & Elsenbeck, J. R. (2009). Implications
+        * of grain size evolution on the seismic structure of the oceanic
+        * upper mantle. Earth and Planetary Science Letters, 282(1), 178-189.
+        *
+        * For the rate of grain size reduction due to dynamic crystallization
+        * there is the choice between the paleowattmeter (Austins and
+        * Evans, 2007) and the paleopiezometer (Hall and Parmentier, 2003)
+        * as described in the parameter use_paleowattmeter.
+        */
         void compute_equilibrium_grain_size (const typename Interface<dim>::MaterialModelInputs &in,
                                              typename Interface<dim>::MaterialModelOutputs      &out) const;
 
@@ -274,31 +291,6 @@ namespace aspect
                            const double      pressure,
                            const std::vector<double> &compositional_fields,
                            const Point<dim> &position) const;
-
-        /**
-         * Rate of grain size growth (Ostwald ripening) or reduction
-         * (due to dynamic recrystallization and phase transformations)
-         * in dependence on temperature, pressure, strain rate, mineral
-         * phase and creep regime.
-         * We use the grain size growth laws as for example described
-         * in Behn, M. D., Hirth, G., & Elsenbeck, J. R. (2009). Implications
-         * of grain size evolution on the seismic structure of the oceanic
-         * upper mantle. Earth and Planetary Science Letters, 282(1), 178-189.
-         *
-         * For the rate of grain size reduction due to dynamic crystallization
-         * there is the choice between the paleowattmeter (Austins and
-         * Evans, 2007) and the paleopiezometer (Hall and Parmentier, 2003)
-         * as described in the parameter use_paleowattmeter.
-         */
-        double
-        grain_size_change (const double                  temperature,
-                           const double                  pressure,
-                           const std::vector<double>    &compositional_fields,
-                           const SymmetricTensor<2,dim> &strain_rate,
-                           const Tensor<1,dim>          &velocity,
-                           const Point<dim>             &position,
-                           const unsigned int            phase_index,
-                           const int                     crossed_transition) const;
 
         /**
          * Function that defines the phase transition interface
