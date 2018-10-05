@@ -91,6 +91,7 @@ subsection Material model
     set Thermal expansion coefficient               = 2.5e-5
     set Use paleowattmeter                          = true
     set Viscosity                                   = 1e26
+    set Use GyPSuM density                          = true
   end
 end
 
