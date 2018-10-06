@@ -614,8 +614,6 @@ namespace aspect
       if (in.strain_rate.size() > 0)
         compute_equilibrium_grain_size(in, out);
 
-      const unsigned int density_index = this->introspection().compositional_index_for_name("gypsum_density");
-
       for (unsigned int i=0; i<in.position.size(); ++i)
         {
           // Use the adiabatic pressure instead of the real one, because of oscillations
@@ -629,7 +627,15 @@ namespace aspect
             disl_viscosities_out->boundary_area_change_work_fractions[i] =
               boundary_area_change_work_fraction[get_phase_index(in.position[i],in.temperature[i],pressure)];
 
-          out.densities[i] = in.composition[i][density_index];
+          if (use_gypsum_density)
+            {
+              const unsigned int density_index = this->introspection().compositional_index_for_name("gypsum_density");
+              out.densities[i] = in.composition[i][density_index];
+            }
+          else
+            out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
+
+
           out.thermal_conductivities[i] = k_value;
           out.compressibilities[i] = compressibility(in.temperature[i], pressure, in.composition[i], in.position[i]);
           out.specific_heat[i] = reference_specific_heat;
@@ -916,6 +922,10 @@ namespace aspect
                              Patterns::Bool (),
                              "This parameter determines whether to use bilinear interpolation "
                              "to compute material properties (slower but more accurate).");
+          prm.declare_entry ("Use GyPSuM density", "false",
+                             Patterns::Bool (),
+                             "A flag indicating whether ASPECT computes the density, or we look for "
+                             "a compositional field named 'gypsum_density' and use it as density field.");
         }
         prm.leave_subsection();
       }
@@ -1084,6 +1094,7 @@ namespace aspect
                                    (prm.get ("Derivatives file names"));
           use_table_properties = prm.get_bool ("Use table properties");
           use_enthalpy = prm.get_bool ("Use enthalpy for material properties");
+          use_gypsum_density = prm.get_bool ("Use GyPSuM density");
 
           // Make sure the grain size field comes after all potential material
           // data fields. Otherwise our material model calculation uses the

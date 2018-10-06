@@ -22,6 +22,7 @@
 #ifndef _aspect_model_equilibrium_grain_size_h
 #define _aspect_model_equilibrium_grain_size_h
 
+#include <aspect/material_model/interface.h>
 #include <aspect/material_model/grain_size.h>
 #include <aspect/simulator_access.h>
 #include <array>
@@ -334,6 +335,13 @@ namespace aspect
         bool use_table_properties;
         bool use_enthalpy;
         bool use_bilinear_interpolation;
+
+        /**
+         * A flag indicating whether ASPECT computes the density, or whether
+         * we require a compositional field called 'gypsum_density' and use it
+         * as density field.
+         */
+        bool use_gypsum_density;
 
 
         /**
