@@ -89,7 +89,7 @@ namespace aspect
               const Tensor<2,dim> strain_increment = this->get_timestep() * (velocity_gradients[q] * strain);
 
               // Output the strain increment component-wise to its respective compositional field's reaction terms.
-              for (unsigned int i = 0; i < Tensor<2,dim>::n_independent_components ; ++i)
+              for (unsigned int i = 6; i < Tensor<2,dim>::n_independent_components ; ++i)
                 out.reaction_terms[q][i] = strain_increment[Tensor<2,dim>::unrolled_to_component_indices(i)];
             }
         }

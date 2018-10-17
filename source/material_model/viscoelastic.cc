@@ -154,7 +154,6 @@ namespace aspect
     evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
              MaterialModel::MaterialModelOutputs<dim> &out) const
     {
-
       // Create the structure for the elastic force terms that are needed to compute the
       // right-hand side of the Stokes system
       MaterialModel::ElasticOutputs<dim>
@@ -185,7 +184,7 @@ namespace aspect
 
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {
-         // const double temperature = in.temperature[i]; **************
+         // const double temperature = in.temperature[i];
           const std::vector<double> composition = in.composition[i];
           const std::vector<double> volume_fractions = compute_volume_fractions(composition, composition_mask);
 
@@ -196,15 +195,38 @@ namespace aspect
           // that they do not vary so much that it is a big problem.
           out.thermal_conductivities[i] = average_value(volume_fractions, thermal_conductivities, arithmetic);
 
-          double density = 0.0;
-
-          for (unsigned int j=0; j < volume_fractions.size(); ++j)
+          double density = 0.0; double average_viscosity = 0.0;
+        /*  for (unsigned int j=0; j < volume_fractions.size(); ++j)
             {
               // not strictly correct if thermal expansivities are different, since we are interpreting
               // these compositions as volume fractions, but the error introduced should not be too bad.
-             // const double temperature_factor= (1.0 - thermal_expansivities[j] * (temperature - reference_T));
-              density += volume_fractions[j] * densities[j];// * temperature_factor;
-            }
+              const double temperature_factor= (1.0 - thermal_expansivities[j] * (temperature - reference_T));
+              density += volume_fractions[j] * densities[j] * temperature_factor;
+            } */
+
+          //* HARD CODED FOR DEPTH DEPENDENCE OF DENSITY AND VISCOSITY /*
+          if (in.position[i][2] >= 84000)
+          {
+            density = 2700;
+            average_viscosity = 1e27;
+           }
+          else if (in.position[i][2] < 84000 & in.position[i][2] >= 60000)
+          {
+            density = 2900;
+            average_viscosity = 1e20;
+          }
+          else if ( in.position[i][2] < 60000 & ((pow ((in.position[i][0] - 1e5), 2) + 
+        pow ((in.position[i][1] - 1e5), 2 )) <= pow(15, 2) ) & in.position[i][2] > 40000)
+          {
+            density = 3050;
+            average_viscosity = 1e22;
+          } 
+          else
+          {
+            density = 3300;
+            average_viscosity = 1e21;
+          }
+            
           out.densities[i] = density;
 
           out.thermal_expansion_coefficients[i] = average_value(volume_fractions, thermal_expansivities, arithmetic);
@@ -225,9 +247,9 @@ namespace aspect
             out.reaction_terms[i][c] = 0.0;
 
           // Average viscosity
-          const double average_viscosity = calculate_average_vector(composition,
+         /* const double average_viscosity = calculate_average_vector(composition,
                                                                     viscosities,
-                                                                    viscosity_averaging);
+                                                                    viscosity_averaging); */
 
           // Average elastic shear modulus
           const double average_elastic_shear_modulus = calculate_average_vector(composition,
