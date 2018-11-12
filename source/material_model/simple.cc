@@ -45,12 +45,12 @@ namespace aspect
                :
                1.0);
 
-          if (in.position[i][2] > 100.e3)
-        	  out.viscosities[i] = 1.e20;
-          else if (in.position[i][2] > 80.e3 && in.position[i][2] < 200.e3)
-        	  out.viscosities[i] = 1.e21;
-          else
-          {
+       //   if (in.position[i][2] > 100.e3)
+       // 	  out.viscosities[i] = 1.e20;
+       //   else if (in.position[i][2] > 80.e3 && in.position[i][2] < 200.e3)
+       // 	  out.viscosities[i] = 1.e21;
+       //   else
+       //   {
           out.viscosities[i] = ((composition_viscosity_prefactor != 1.0) && (in.composition[i].size()>0))
                                ?
                                // Geometric interpolation
@@ -61,11 +61,11 @@ namespace aspect
                                                                                    temperature_dependence)))
                                :
                                temperature_dependence * eta;
-          }
+       //   }
 
           const double c = (in.composition[i].size()>0)
                            ?
-                           std::max(0.0, in.composition[i][9]) // for finite strain, use 10th composition
+                           std::max(0.0, in.composition[i][0]) // for finite strain, use 9th composition
                            :
                            0.0;
 

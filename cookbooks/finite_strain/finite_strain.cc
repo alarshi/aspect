@@ -18,7 +18,7 @@
   <http://www.gnu.org/licenses/>.
 */
 
-#include <aspect/material_model/viscoelastic.h>
+#include <aspect/material_model/simple.h>
 #include <aspect/simulator_access.h>
 
 #include <deal.II/base/quadrature_lib.h>
@@ -31,7 +31,7 @@ namespace aspect
     using namespace dealii;
 
     template <int dim>
-    class FiniteStrain : public MaterialModel::Viscoelastic<dim>
+    class FiniteStrain : public MaterialModel::Simple<dim>
     {
       public:
         virtual void evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
@@ -56,7 +56,7 @@ namespace aspect
       // First, we use the material descriptions of the 'simple' material model to fill all of the material
       // model outputs. Below, we will then overwrite selected properties (the reaction terms), which are
       // needed to track the finite strain.
-      Viscoelastic<dim>::evaluate(in, out);
+      Simple<dim>::evaluate(in, out);
 
       // We need the velocity gradient for the finite strain (they are not included in material model inputs),
       // so we get them from the finite element.
@@ -80,16 +80,15 @@ namespace aspect
           for (unsigned int q=0; q < in.position.size(); ++q)
             {
               // Convert the compositional fields into the tensor quantity they represent.
-              // We use the 7th field for strain tensor, as first 6 are for the stress
               Tensor<2,dim> strain;
-              for (unsigned int i = 6; i < Tensor<2,dim>::n_independent_components ; ++i)
+              for (unsigned int i = 0; i < Tensor<2,dim>::n_independent_components ; ++i)
                 strain[Tensor<2,dim>::unrolled_to_component_indices(i)] = in.composition[q][i];
 
               // Compute the strain accumulated in this timestep.
               const Tensor<2,dim> strain_increment = this->get_timestep() * (velocity_gradients[q] * strain);
 
               // Output the strain increment component-wise to its respective compositional field's reaction terms.
-              for (unsigned int i = 6; i < Tensor<2,dim>::n_independent_components ; ++i)
+              for (unsigned int i = 0; i < Tensor<2,dim>::n_independent_components ; ++i)
                 out.reaction_terms[q][i] = strain_increment[Tensor<2,dim>::unrolled_to_component_indices(i)];
             }
         }
@@ -101,7 +100,7 @@ namespace aspect
     FiniteStrain<dim>::
     parse_parameters (ParameterHandler &prm)
     {
-      Viscoelastic<dim>::parse_parameters (prm);
+      Simple<dim>::parse_parameters (prm);
 
       AssertThrow(this->n_compositional_fields() >= (Tensor<2,dim>::n_independent_components),
                   ExcMessage("There must be at least as many compositional fields as independent components in the full "
@@ -118,7 +117,7 @@ namespace aspect
     ASPECT_REGISTER_MATERIAL_MODEL(FiniteStrain,
                                    "finite strain",
                                    "A simple material model that is like the "
-                                   "'Viscoelastic' model, but tracks the finite strain as compositional "
+                                   "'Simple' model, but tracks the finite strain as compositional "
                                    "fields. More precisely, the model assumes that the first 4 (in 2D) "
                                    "or 9 (in 3D) compositional fields contain the components "
                                    "of the deformation gradient tensor, $\\mathbf F$, which can "
