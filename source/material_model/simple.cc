@@ -54,9 +54,9 @@ namespace aspect
           out.viscosities[i] = ((composition_viscosity_prefactor != 1.0) && (in.composition[i].size()>0))
                                ?
                                // Geometric interpolation
-                               std::pow(10.0, ((1-in.composition[i][0]) * std::log10(eta *
+                               std::pow(10.0, ((1-in.composition[i][9]) * std::log10(eta *
                                                                                      temperature_dependence)
-                                               + in.composition[i][0] * std::log10(eta *
+                                               + in.composition[i][9] * std::log10(eta *
                                                                                    composition_viscosity_prefactor *
                                                                                    temperature_dependence)))
                                :
@@ -65,7 +65,7 @@ namespace aspect
 
           const double c = (in.composition[i].size()>0)
                            ?
-                           std::max(0.0, in.composition[i][0]) // for finite strain, use 9th composition
+                           std::max(0.0, in.composition[i][9]) // for finite strain, use 9th composition
                            :
                            0.0;
 
