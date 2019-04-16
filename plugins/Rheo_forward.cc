@@ -30,6 +30,262 @@ from ConfigParser import SafeConfigParser
 
 using namespace std;
 
+
+
+/*
+ * ------------------------------------------------------------------
+ * 
+ * 		CONSTANTS
+ * 
+ * ------------------------------------------------------------------
+ */
+
+
+// A series of constants relevant for a specific modeling approach.
+// The modeling approach name is contained in the name of namespace.
+namespace Rheology_Constants
+{
+	namespace Common
+	{
+		// Ideal gas constant [J K^-1 mol^-1]
+		const double R = 8.3144621;
+	}
+	//###########################  Jackson & Faul 2010  ###########################
+	//###########################   Extended Burgers    ###########################
+	namespace JF10_eBurg
+	{
+		// Shear modulus at TR, PR [Pa]
+		const double GUR = 66.5e+9;
+		
+		// T-derivative of Shear modulus [Pa K^-1]
+		const double dGdT = -0.0136e+9;
+		
+		// P-derivative of Shear modulus
+		const double dGdP = 1.8;
+		
+		// Activation energy ("U" in the paper) [J mol^-1]
+		const double E = 360000;
+		
+		// Activation volume [m^3 mol^-1]
+		const double V = 1e-5;
+		
+		// Reference Temperature [K]
+		const double TR = 1173;
+		
+		// Reference Pressure [Pa]
+		const double PR = 0.2e+9;
+		
+		// Reference Grainsize [m]
+		const double gsR = 13.4e-6;
+		
+		// Anelastic grain size exponent
+		const double ma = 1.31;
+		
+		// Frequency dependence
+		const double alpha = 0.274;
+		
+		// Relaxation strength - Burgers
+		const double Delta = 1.04;
+		
+		// Reference relaxation time - upper bound [s]
+		const double tauHR = 1e7;
+		
+		// Reference relaxation time - lower bound [s]
+		const double tauLR = 1e-3;
+		
+		// Reference relaxation time - Maxwell [s]
+		const double tauMR = 3.02e+7;
+		
+		
+		// "extended" dissipation peak parms
+		// Peak width
+		const double sigma = 4;
+		
+		// Relaxation strength - Peak
+		const double DeltaP = 0.057;
+		
+		// Reference relaxation time - Peak [s]
+		const double tauPR = 3.9811e-4;
+		
+		// Viscous grain size exponent
+		const double mv = 3;
+	}
+	//###########################  Jackson & Faul 2010  ###########################
+	//###########################        Andrade        ###########################
+	namespace Andrade
+	{
+		// Shear modulus at TR, PR [Pa]
+		const double GUR = 62.2e+9;
+		
+		// T-derivative of Shear modulus [Pa K^-1]
+		const double dGdT = -0.0136e+9;
+		
+		// P-derivative of Shear modulus
+		const double dGdP = 1.8;
+		
+		// Activation energy ("U" in the paper) [J mol^-1]
+		const double E = 303000;
+		
+		// Activation volume [m^3 mol^-1]
+		const double V = 1e-5;
+		
+		// Reference Temperature [K]
+		const double TR = 1173;
+		
+		// Reference Pressure [Pa]
+		const double PR = 0.2e+9;
+		
+		// Reference Grainsize [m]
+		const double gsR = 3.1e-6;
+		
+		// grainsize dependence exponent ------------ ?????? who cares ??????
+		const double m = 3;
+		
+		// frequency exponent
+		const double n = 0.33;
+		
+		// Beta star = Beta / J_unrelaxed
+		const double Bstar = 0.020;
+		
+		// Reference relaxation time - Maxwell [s]
+		const double tauMR = 1.9953e+5;
+	}
+	//##############################################################################
+	//###########################  McCarthy et al. 2011  ###########################
+	namespace M11
+	{
+		// Shear modulus at TR, PR, Isaak, 1992 [Pa]
+		const double GUR = 82e+9;
+		
+		// T-derivative of Shear modulus, Isaak, 1992 [Pa K^-1]
+		const double dGdT = -0.0136e+9;
+		
+		// P-derivative of Shear modulus, Isaak, 1992
+		const double dGdP = 1.8;
+		
+		// Activation energy ("U" in the paper) [J mol^-1]
+		const double E = 505000;
+		
+		// Activation volume [m^3 mol^-1]
+		const double V = 1.2e-5;
+		
+		// Reference Temperature [K]
+		const double TR = 1473;
+		
+		// Reference Pressure [Pa]
+		const double PR = 0.2e+9;
+		
+		// Reference Grainsize [m]
+		const double gsR = 1e-3;
+		
+		// grainsize dependence exponent
+		const double m = 3;
+		
+		// Reference viscosity [Pa s]
+		const double eta0 = 6.6e+19;
+		
+		// fn polynomial fit parms (equation 26)
+		const double a0 = 5.5097e-1;
+		const double a1 = 5.4332e-2;
+		const double a2 = -2.3615e-3;
+		const double a3 = -5.7175e-5;
+		const double a4 = 9.9473e-6;
+		const double a5 = -3.4761e-7;
+		const double a6 = 3.9461e-9;
+	}
+	//##########################################################################
+	//###########################  Takei et al 2014  ###########################
+	namespace Tak14
+	{
+		// Shear modulus at TR, PR [Pa]
+		const double GUR = 82e+9;
+		
+		// T-derivative of Shear modulus [Pa K^-1]
+		const double dGdT = -0.0136e+9;
+		
+		// P-derivative of Shear modulus
+		const double dGdP = 1.8;
+		
+		// Reference Temperature [K]
+		const double TR = 1473;
+		
+		// Reference Pressure (by ref to M11, not in paper??)  Pa
+		const double PR = 0.2e+9;
+		
+		// Reference Grainsize [m]
+		const double gsR = 1e-3;
+		
+		// Activation energy ("H" in the paper) [J mol^-1]
+		const double E = 505000;
+		
+		// Activation volume [m^3 mol^-1]
+		const double V = 1.2e-5;
+		
+		// Reference Viscosity [Pa s]
+		const double eta0 = 6.6e+19;
+		
+		// grainsize dependence exponent
+		const double m = 3;
+		
+		// Peak standard deviation (value for melt-free Ol)
+		const double sigmap = 4;
+		
+		// Peak pre-exponent (value for melt-free Ol)
+		const double Ap = 0.007;
+	}
+	//###################################################################################
+	//###########################  Priestley & McKenzie 2013  ###########################
+	namespace P_M13
+	{
+		// Shear modulus at TR, PR [Pa]
+		const double GUR = 72.66e+9;
+		
+		// T-derivative of Shear modulus [Pa K^-1]
+		const double dGdT = -0.00871e+9;
+		
+		// P-derivative of Shear modulus
+		const double dGdP = 2.04;
+		
+		// Activation energy ("U" in the paper) [J mol^-1]
+		const double E = 402900;
+		
+		// Activation volume - m^3 mol^-1]
+		const double V = 7.81e-6;
+		
+		// Reference Temperature [K]
+		const double TR = 1473;
+		
+		// Reference Pressure [Pa]
+		const double PR = 1.5e+9;
+		
+		// Reference Viscosity [Pa s]
+		const double eta0 = 2.3988e+22;
+		
+		// Reference Grainsize [m]
+		const double gsR = 1e-3;
+		
+		// grainsize dependence exponent
+		const double m = 3;
+		
+		// fn polynomial fit parms (equation 26)
+		const double a0 = 5.5097e-1;
+		const double a1 = 5.4332e-2;
+		const double a2 = -2.3615e-3;
+		const double a3 = -5.7175e-5;
+		const double a4 = 9.9473e-6;
+		const double a5 = -3.4761e-7;
+		const double a6 = 3.9461e-9;
+	}
+	//##############################################################################
+	//###########################  LOWER MANTLE GUESSES  ###########################
+	namespace LOWM
+	{
+		// Activation volume - m^3 mol^-1
+		const double V = 1e-6;
+	}
+}
+
+
 /*
  * ------------------------------------------------------------------
  * 
