@@ -39,6 +39,19 @@ using namespace std;
  */
 
 
+
+std::vector<double> linspace(const double a, const double b, const unsigned int N) {
+    double h = (b - a) / static_cast<double>(N-1);
+    std::vector<double> xs(N);
+    typename std::vector<double>::iterator x;
+    double val(a);
+    for (x = xs.begin(); x != xs.end(); ++x, val += h)
+        *x = val;
+    return xs;
+}
+
+
+
 std::pair<double, double> PTd_VsQ( double freq, double P, double T, double gs, double rho, std::string model, double highQapprox, double Vs0 = std::numeric_limits<double>::quiet_NaN() )
 {
 	/*
@@ -279,9 +292,9 @@ double getJ2byJu(double freq, double P, double T, double gs, std::string model, 
 		double j2b = omega*(alpha*Delta)/(pow(tauH,alpha) - pow(tauL,alpha));
 		double j2p = omega*DeltaP/(sigma*sqrt(2*UniversalConst::PI));
 		
-		// !!!!! NEED TO REPLACE ITEMS HERE !!!!!
-		std::vector<double> tau_arr = MyUtilities::linspace(tauL,tauH,100); //tau_arr=np.linspace(tauL,tauH,100);
+		std::vector<double> tau_arr = linspace(tauL,tauH,100); //tau_arr=np.linspace(tauL,tauH,100);
 		double i2b = intgrate_j2b(tauL, tauH, alpha, omega, int N=1000);
+		// !!!!! NEED TO REPLACE ITEMS HERE !!!!!
 		double i2p = integrate.quad(intgrnd_j2p, 0, np.inf, args=(omega,tauP,sigma))[0];
 		
 		J2byJu = (j2b*i2b)+(j2p*i2p)+(1.0/(omega*tauM));
