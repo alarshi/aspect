@@ -25,6 +25,7 @@ from ConfigParser import SafeConfigParser
 #include <string>
 #include <map>
 #include <random>
+#include <assert.h>
 
 #include "refvalues_and_utilities.h"
 
@@ -41,8 +42,25 @@ using namespace std;
  */
 
 
-// A series of constants relevant for a specific modeling approach.
-// The modeling approach name is contained in the name of namespace.
+/*
+ * ***********************************************************
+ * 
+ * A series of constants relevant for a specific modeling approach.
+ * 
+ * The modeling approach name is contained in the name of namespace.
+ * 
+ * The namespace allows for fetching the correct constant value
+ * for the specified Model and Parameter.
+ * 
+ * !!!!!
+ * 			The constants are simple copy and pasted here
+ * 			from the constants_complete.ini file.
+ * 			These values should not be hardcoded, and
+ * 			should be changed later to read from file.
+ * !!!!!
+ * 
+ ************************************************************
+ */
 namespace Rheology_Constants
 {
 	namespace Common
@@ -289,7 +307,6 @@ namespace Rheology_Constants
 /*
  * Forward declaration
  */
-double getconstant(std::string model, std::string par);
 double getfn(double freq, double P, double T, double gs, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN());
 double getJ1byJu(double freq, double P, double T, double gs, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN());
 double getJ2byJu(double freq, double P, double T, double gs, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN());
@@ -299,6 +316,7 @@ double intgrate_j1b(double limL, double limH, double alpha, double omega, int N=
 double mccarthyXn(double taun);
 double intgrate_j2b(double limL, double limH, double alpha, double omega, int N=1000);
 double gettauM_P_M13(double T, double P, double Ju);
+
 
 
 /*
@@ -460,13 +478,13 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 		
 		
 		// Getting J1 values from McCarthy et al., 2011
-		a0 = getconstant(model, "a0");
-		a1 = getconstant(model, "a1");
-		a2 = getconstant(model, "a2");
-		a3 = getconstant(model, "a3");
-		a4 = getconstant(model, "a4");
-		a5 = getconstant(model, "a5");
-		a6 = getconstant(model, "a6");
+		a0 = Rheology_Constants::M11::a0;
+		a1 = Rheology_Constants::M11::a1;
+		a2 = Rheology_Constants::M11::a2;
+		a3 = Rheology_Constants::M11::a3;
+		a4 = Rheology_Constants::M11::a4;
+		a5 = Rheology_Constants::M11::a5;
+		a6 = Rheology_Constants::M11::a6;
 
 		if (fn <= 1.0e+13)
 		{
@@ -482,19 +500,19 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 		}
 		else J1byJu = 1.0;
 	}
-//#	If model is Priestley and McKenzie 2013		
 	else if (model == "P_M13")
 	{
 		fn = getfn(freq, P, T, gs, model, Vs0, rho);
 		
 		// Getting J1 values from McCarthy et al., 2011
-		a0 = getconstant(model, "a0");
-		a1 = getconstant(model, "a1");
-		a2 = getconstant(model, "a2");
-		a3 = getconstant(model, "a3");
-		a4 = getconstant(model, "a4");
-		a5 = getconstant(model, "a5");
-		a6 = getconstant(model, "a6");
+		a0 = Rheology_Constants::P_M13::a0;
+		a1 = Rheology_Constants::P_M13::a1;
+		a2 = Rheology_Constants::P_M13::a2;
+		a3 = Rheology_Constants::P_M13::a3;
+		a4 = Rheology_Constants::P_M13::a4;
+		a5 = Rheology_Constants::P_M13::a5;
+		a6 = Rheology_Constants::P_M13::a6;
+		
 		
 		if (fn <= 1.0e+13)
 		{
@@ -513,14 +531,14 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 //#	If model is extended Burgers from Jackson & Faul 2010
 	else if (model == "JF10_eBurg")
 	{
-		double alpha = getconstant(model,"alpha");
-		double sigma = getconstant(model,"sigma");
-		double Delta = getconstant(model,"Delta");
-		double tauHR = getconstant(model,"tauHR");
-		double tauLR = getconstant(model,"tauLR");
-		double tauPR = getconstant(model,"tauPR");
-		double DeltaP = getconstant(model,"DeltaP");
-		double ma = getconstant(model,"ma");
+		double alpha = Rheology_Constants::JF10_eBurg::alpha;
+		double sigma = Rheology_Constants::JF10_eBurg::sigma;
+		double Delta = Rheology_Constants::JF10_eBurg::Delta;
+		double tauHR = Rheology_Constants::JF10_eBurg::tauHR;
+		double tauLR = Rheology_Constants::JF10_eBurg::tauLR;
+		double tauPR = Rheology_Constants::JF10_eBurg::tauPR;
+		double DeltaP = Rheology_Constants::JF10_eBurg::DeltaP;
+		double ma = Rheology_Constants::JF10_eBurg::ma;
 		
 		omega = 2.0 * UniversalConst::PI * freq;
 		double tauH = gettau(tauHR, ma, P, T, gs, model);
@@ -537,13 +555,12 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 		
 		J1byJu = 1.0 + (j1b*i1b) + (j1p*i1p);
 	}
-//#	If model is Takei 2014
 	else if (model == "Tak14")
 	{
-		double m = getconstant(model, "m"); // grainsize exponent
-		double eta0 = getconstant(model, "eta0"); // ref viscosity
-		double Ap = getconstant(model, "Ap"); // pre-exponent for peak (normalisation factor)
-		double sigmap = getconstant(model, "sigmap"); // controls peak width - see Takei 2014 eqn 17
+		double m = Rheology_Constants::Tak14::m; // grainsize exponent
+		double eta0 = Rheology_Constants::Tak14::eta0; // ref viscosity
+		double Ap = Rheology_Constants::Tak14::Ap; // pre-exponent for peak (normalisation factor)
+		double sigmap = Rheology_Constants::Tak14::sigmap; // controls peak width - see Takei 2014 eqn 17
 		
 		// Value of the real and complex part of compliance			
 		if ( std::isnan(Vs0) ) Ju = getJu(T, P, model);
@@ -589,16 +606,16 @@ double getJ2byJu(double freq, double P, double T, double gs, std::string model, 
 	}
 	else if (model == "JF10_eBurg")  // *** If model is extended Burgers from Jackson & Faul 2010
 	{
-		double alpha = getconstant(model, "alpha");
-		double sigma = getconstant(model, "sigma");
-		double Delta = getconstant(model, "Delta");
-		double tauHR = getconstant(model, "tauHR");
-		double tauLR = getconstant(model, "tauLR");
-		double tauPR = getconstant(model, "tauPR");
-		double tauMR = getconstant(model, "tauMR");
-		double DeltaP = getconstant(model, "DeltaP");
-		double ma = getconstant(model, "ma");
-		double mv = getconstant(model, "mv");
+		double alpha = Rheology_Constants::JF10_eBurg::alpha;
+		double sigma = Rheology_Constants::JF10_eBurg::sigma;
+		double Delta = Rheology_Constants::JF10_eBurg::Delta;
+		double tauHR = Rheology_Constants::JF10_eBurg::tauHR;
+		double tauLR = Rheology_Constants::JF10_eBurg::tauLR;
+		double tauPR = Rheology_Constants::JF10_eBurg::tauPR;
+		double tauMR = Rheology_Constants::JF10_eBurg::tauMR;
+		double DeltaP = Rheology_Constants::JF10_eBurg::DeltaP;
+		double ma = Rheology_Constants::JF10_eBurg::ma;
+		double mv = Rheology_Constants::JF10_eBurg::mv;
 		
 		omega = 2.0 * UniversalConst::PI * freq;
 		
@@ -619,10 +636,10 @@ double getJ2byJu(double freq, double P, double T, double gs, std::string model, 
 	}
 	else if (model == "Tak14")  // *** If model is Takei 2014
 	{
-		double m = getconstant(model,"m"); // grainsize exponent
-		double eta0 = getconstant(model,"eta0"); // ref viscosity
-		double Ap = getconstant(model,"Ap"); // pre-exponent for peak (normalisation factor)
-		double sigmap = getconstant(model,"sigmap"); // controls peak width - see Takei 2014 eqn 17
+		double m = Rheology_Constants::Tak14::m; // grainsize exponent
+		double eta0 = Rheology_Constants::Tak14::eta0; // ref viscosity
+		double Ap = Rheology_Constants::Tak14::Ap; // pre-exponent for peak (normalisation factor)
+		double sigmap = Rheology_Constants::Tak14::sigmap; // controls peak width - see Takei 2014 eqn 17
 		
 		
 		// Value of the real and complex part of compliance			
@@ -667,8 +684,29 @@ double getfn(double freq, double P, double T, double gs, std::string model, doub
 {
 	// Get the normalized frequency from McCarthy et al. (2011) eqn. 19 and 22
 	
-	double eta0 = getconstant(model,"eta0");
-	double m = getconstant(model,"m");
+	
+	// Check for an invalid model
+	assert (model != "JF10_eBurg" || model != "Andrade" || model != "LOWM");
+	
+	
+	double eta0, m;
+	
+	if (model == "M11")
+	{
+		eta0 = Rheology_Constants::M11::eta0;
+		m = Rheology_Constants::M11::m;
+	}
+	else if (model == "Tak14")
+	{
+		eta0 = Rheology_Constants::Tak14::eta0;
+		m = Rheology_Constants::Tak14::m;
+	}
+	else if (model == "P_M13")
+	{
+		eta0 = Rheology_Constants::P_M13::eta0;
+		m = Rheology_Constants::P_M13::m;
+	}
+	
 	
 	double Ju;
 	
@@ -688,45 +726,63 @@ double getfn(double freq, double P, double T, double gs, std::string model, doub
 
 
 
-double geteta(double P, double T, double gs, std::string model)
-{
-	// Get the viscosity from a combination of power law and Arrhenius eqn. like 
-	// in McCarthy eqn. 8
-	
-	double TR = getconstant(model,"TR");
-	double gsR = getconstant(model,"gsR");
-	double eta0 = getconstant(model,"eta0");
-	
-	double m;
-	if (model == "M11" || model == "P_M13")
-	  m=getconstant(model,"m");
-	else if (model == "eBurgers")
-	  m=getconstant(model,"ma");
-	
-	double E = getconstant(model,"E");
-	double R = getconstant("Common","R");
-	
-	double eta = eta0*std::pow((gs/gsR),m)*exp((E/R)*(TR-T)/(TR*T));
-	
-	return eta;
-}
-
-
-
 double getJu(double T, double P, std::string model, double Vs0, double rho)
 {
 	// This gets the unrelaxed modulus at T,P conditions based on constants from study
 	
-	double GUR, dGdT, dGdP, TR, PR;
 	double Ju;
+	
+	
+	// Check for an invalid model
+	assert (model != "LOWM");
+	
 	
 	if ( std::isnan(Vs0) )
 	{
-		GUR = getconstant(model,"GUR");
-		dGdT = getconstant(model,"dGdT"); 
-		dGdP = getconstant(model,"dGdP");
-		TR = getconstant(model,"TR");
-		PR = getconstant(model,"PR");
+		double GUR, dGdT, dGdP, TR, PR;
+		
+		if (model == "JF10_eBurg")
+		{
+			GUR = Rheology_Constants::JF10_eBurg::GUR;
+			dGdT = Rheology_Constants::JF10_eBurg::dGdT; 
+			dGdP = Rheology_Constants::JF10_eBurg::dGdP;
+			TR = Rheology_Constants::JF10_eBurg::TR;
+			PR = Rheology_Constants::JF10_eBurg::PR;
+		}
+		else if (model == "Andrade")
+		{
+			GUR = Rheology_Constants::Andrade::GUR;
+			dGdT = Rheology_Constants::Andrade::dGdT; 
+			dGdP = Rheology_Constants::Andrade::dGdP;
+			TR = Rheology_Constants::Andrade::TR;
+			PR = Rheology_Constants::Andrade::PR;
+		}
+		else if (model == "M11")
+		{
+			GUR = Rheology_Constants::M11::GUR;
+			dGdT = Rheology_Constants::M11::dGdT;
+			dGdP = Rheology_Constants::M11::dGdP;
+			TR = Rheology_Constants::M11::TR;
+			PR = Rheology_Constants::M11::PR;
+		}
+		else if (model == "Tak14")
+		{
+			GUR = Rheology_Constants::Tak14::GUR;
+			dGdT = Rheology_Constants::Tak14::dGdT; 
+			dGdP = Rheology_Constants::Tak14::dGdP;
+			TR = Rheology_Constants::Tak14::TR;
+			PR = Rheology_Constants::Tak14::PR;
+		}
+		else if (model == "P_M13")
+		{
+			GUR = Rheology_Constants::P_M13::GUR;
+			dGdT = Rheology_Constants::P_M13::dGdT; 
+			dGdP = Rheology_Constants::P_M13::dGdP;
+			TR = Rheology_Constants::P_M13::TR;
+			PR = Rheology_Constants::P_M13::PR;
+		}
+		
+		
 		Ju = 1.0*(GUR + dGdT*(T-TR) + dGdP*(P-PR));
 	}
 	else Ju = 1.0/(rho*std::pow(Vs0, 2.0));
@@ -740,12 +796,59 @@ double gettau(double tau0, double m, double P, double T, double gs, std::string 
 {
 	// calculate the relaxation time at P,T,gs, given model and reference(0) relaxation 
 	// time and grainsize exponent
-	double PR = getconstant(model,"PR");
-	double TR = getconstant(model,"TR");
-	double gsR = getconstant(model,"gsR");
-	double E = getconstant(model,"E");
-	double V = getconstant(model,"V");
-	double R = getconstant("Common","R");
+	
+	
+	// Check for an invalid model
+	assert (model != "LOWM");
+	
+	
+	double PR, TR, gsR, E, V;
+	
+	
+	double R = Rheology_Constants::Common::R;
+	
+ // !!!! LEFT OFF HERE !!!
+	if (model == "JF10_eBurg")
+	{
+		PR = Rheology_Constants::JF10_eBurg::PR;
+		TR = Rheology_Constants::JF10_eBurg::TR;
+		gsR = Rheology_Constants::JF10_eBurg::gsR;
+		E = Rheology_Constants::JF10_eBurg::E;
+		V = Rheology_Constants::JF10_eBurg::V;
+	}
+	else if (model == "Andrade")
+	{
+		PR = Rheology_Constants::Andrade::PR;
+		TR = Rheology_Constants::Andrade::TR;
+		gsR = Rheology_Constants::Andrade::gsR;
+		E = Rheology_Constants::Andrade::E;
+		V = Rheology_Constants::Andrade::V;
+	}
+	else if (model == "M11")
+	{
+		PR = Rheology_Constants::M11::PR;
+		TR = Rheology_Constants::M11::TR;
+		gsR = Rheology_Constants::M11::gsR;
+		E = Rheology_Constants::M11::E;
+		V = Rheology_Constants::M11::V;
+	}
+	else if (model == "Tak14")
+	{
+		PR = Rheology_Constants::Tak14::PR;
+		TR = Rheology_Constants::Tak14::TR;
+		gsR = Rheology_Constants::Tak14::gsR;
+		E = Rheology_Constants::Tak14::E;
+		V = Rheology_Constants::Tak14::V;
+	}
+	else if (model == "P_M13")
+	{
+		PR = Rheology_Constants::P_M13::PR;
+		TR = Rheology_Constants::P_M13::TR;
+		gsR = Rheology_Constants::P_M13::gsR;
+		E = Rheology_Constants::P_M13::E;
+		V = Rheology_Constants::P_M13::V;
+	}
+	
 	
 	if (P > 24.3e9)
 	{
@@ -764,17 +867,19 @@ double gettau(double tau0, double m, double P, double T, double gs, std::string 
 
 
 
-double gettauM_P_M13(double T, double P, double Ju)  // !!!!! getconstant needs replacement. See next function !!!!!
+double gettauM_P_M13(double T, double P, double Ju)
 {
 	// This gets the Maxwell relaxation time at T,P conditions based on constants
 	// from study model='P_M13'
-        const std::string model = "P_M13";
-	double TR = getconstant(model,"TR");
-	double PR = getconstant(model,"PR");
-	double E = getconstant(model,"E");
-	double V = getconstant(model,"V");
-	double R = getconstant("Common","R");
-	double eta0 = getconstant(model,"eta0");
+	
+	double R = Rheology_Constants::Common::R;
+	
+	
+	double TR = Rheology_Constants::P_M13::TR;
+	double PR = Rheology_Constants::P_M13::PR;
+	double E = Rheology_Constants::P_M13::E;
+	double V = Rheology_Constants::P_M13::V;
+	double eta0 = Rheology_Constants::P_M13::eta0;
 	
 	
 	if (P > 24.3e9)
@@ -796,25 +901,13 @@ double gettauM_P_M13(double T, double P, double Ju)  // !!!!! getconstant needs 
 }
 
 
-/*
-double getconstant(std::string model, std::string par)  // !!!!! THIS FUNCTION NEEDS TO BE REPLACED. NO SafeConfigParser in c++ !!!!!
-{
-	// This subroutine gets the value of a constant relevant for a modeling approach
-	parser = SafeConfigParser();
-	parser.read("constants_complete.ini");
-	val=float(parser.get(model,par));
-	
-	return val;
-}
-*/
-
 
 /*
  * ------------------------------------------------------------------
  * 
  *		Integrations for JF10
  * 
- *-------------------------------------------------------------------
+ * ------------------------------------------------------------------
  */
 
 /**
@@ -998,273 +1091,3 @@ double intgrate_j1p(double limL, double limH, double omega, double tauP, double 
 	return yy[xx.size()-1]; // Only return the last element
 }
 
-
-
-
-/*
- ************************************************************
- * 
- * 
- * A function to fetch the correct constant value for the
- * specified Model and Parameter.
- * 
- * !!!!!
- * 			The constants are simple copy and pasted here
- * 			from the constants_complete.ini file.
- * 			These values should not be hardcoded, and
- * 			should be changed later to read from file.
- * !!!!!
- * 
- ************************************************************
- */
-
-double getconstant(std::string model, std::string par)  // !!!!! THIS FUNCTION NEEDS TO BE REPLACED. NO SafeConfigParser in c++ !!!!!
-{
-	// This subroutine gets the value of a constant relevant for a modeling approach
-	
-	//val=float(parser.get(model,par));
-	double val;
-	
-	if (model == "Common")
-	{
-		// Ideal gas constant							J K^-1 mol^-1
-		if (par == "R") val = 8.3144621;
-	}
-	//###########################  Jackson & Faul 2010  ###########################
-	//###########################   Extended Burgers    ###########################
-	else if (model == "JF10_eBurg")
-	{
-		//# Shear modulus at TR, PR 						Pa
-		if (par == "GUR") val = 66.5e+9;
-
-		//# T-derivative of Shear modulus					Pa K^-1
-		else if (par == "dGdT") val = -0.0136e+9;
-
-		//# P-derivative of Shear modulus					
-		else if (par == "dGdP") val = 1.8;
-
-		//# Activation energy	("U" in the paper)			J mol^-1
-		else if (par == "E") val = 360000;
-
-		//# Activation volume								m^3 mol^-1
-		else if (par == "V") val = 1e-5;
-
-		//# Reference Temperature							K
-		else if (par == "TR") val = 1173;
-
-		//# Reference Pressure							Pa
-		else if (par == "PR") val = 0.2e+9;
-
-		//# Reference Grainsize							m
-		else if (par == "gsR") val = 13.4e-6;
-
-		//# Anelastic grain size exponent	
-		else if (par == "ma") val = 1.31;
-
-		//# Frequency dependence	
-		else if (par == "alpha") val = 0.274;
-
-		//# Relaxation strength - Burgers					
-		else if (par == "Delta") val = 1.04;
-
-		//# Reference relaxation time - upper bound		s
-		else if (par == "tauHR") val = 1e7;
-
-		//# Reference relaxation time - lower bound		s
-		else if (par == "tauLR") val = 1e-3;
-
-		//# Reference relaxation time - Maxwell			s
-		else if (par == "tauMR") val = 3.02e+7;
-
-
-		//# "extended" dissipation peak parms
-		//# Peak width
-		else if (par == "sigma") val = 4;
-
-		//# Relaxation strength - Peak 					
-		else if (par == "DeltaP") val = 0.057;
-
-		//# Reference relaxation time - Peak			s
-		else if (par == "tauPR") val = 3.9811e-4;
-
-		//# Viscous grain size exponent
-		else if (par == "mv") val = 3;
-	}
-	//###########################  Jackson & Faul 2010  ###########################
-	//###########################        Andrade        ###########################
-	else if (model == "Andrade")
-	{
-		//# Shear modulus at TR, PR 						Pa
-		if (par == "GUR") val = 62.2e+9;
-
-		//# T-derivative of Shear modulus					Pa K^-1
-		else if (par == "dGdT") val = -0.0136e+9;
-
-		//# P-derivative of Shear modulus					
-		else if (par == "dGdP") val = 1.8;
-
-		//# Activation energy	("U" in the paper)			J mol^-1
-		else if (par == "E") val = 303000;
-
-		//# Activation volume								m^3 mol^-1
-		else if (par == "V") val = 1e-5;
-
-		//# Reference Temperature							K
-		else if (par == "TR") val = 1173;
-
-		//# Reference Pressure							Pa
-		else if (par == "PR") val = 0.2e+9;
-
-		//# Reference Grainsize							m
-		else if (par == "gsR") val = 3.1e-6;
-
-		//# grainsize dependence exponent 		??????	 who cares 	??????
-		else if (par == "m") val = 3;
-
-		//# frequency exponent
-		else if (par == "n") val = 0.33;
-
-		//# Beta star = Beta / J_unrelaxed	
-		else if (par == "Bstar") val = 0.020;
-
-		//# Reference relaxation time - Maxwell			s
-		else if (par == "tauMR") val = 1.9953e+5;
-	}
-
-	//###########################  McCarthy et al. 2011  ###########################
-	else if (model == "M11")
-	{
-		//# Shear modulus at TR, PR, Isaak, 1992			Pa
-		if (par == "GUR") val = 82e+9;
-
-		//# T-derivative of Shear modulus,  Isaak, 1992	Pa K^-1
-		else if (par == "dGdT") val = -0.0136e+9;
-
-		//# P-derivative of Shear modulus,  Isaak, 1992	
-		else if (par == "dGdP") val = 1.8;
-
-		//# Activation energy	("U" in the paper)			J mol^-1
-		else if (par == "E") val = 505000;
-
-		//# Activation volume								m^3 mol^-1
-		else if (par == "V") val = 1.2e-5;
-
-		//# Reference Temperature							K
-		else if (par == "TR") val = 1473;
-
-		//# Reference Pressure							Pa 
-		else if (par == "PR") val = 0.2e+9;
-
-		//# Reference Grainsize							m
-		else if (par == "gsR") val = 1e-3;
-
-		//# grainsize dependence exponent
-		else if (par == "m") val = 3;
-
-		//# Reference viscosity							Pa s
-		else if (par == "eta0") val = 6.6e+19;
-
-		//# fn polynomial fit parms (equation 26)
-		else if (par == "a0") val = 5.5097e-1;
-		else if (par == "a1") val = 5.4332e-2;
-		else if (par == "a2") val = -2.3615e-3;
-		else if (par == "a3") val = -5.7175e-5;
-		else if (par == "a4") val = 9.9473e-6;
-		else if (par == "a5") val = -3.4761e-7;
-		else if (par == "a6") val = 3.9461e-9;
-	}
-
-	//###########################  Takei et al 2014  ###########################
-	else if (model == "Tak14")
-	{
-		//# Shear modulus at TR, PR 						Pa
-		if (par == "GUR") val = 82e+9;
-
-		//# T-derivative of Shear modulus					Pa K^-1
-		else if (par == "dGdT") val = -0.0136e+9;
-
-		//# P-derivative of Shear modulus					
-		else if (par == "dGdP") val = 1.8;
-
-		//# Reference Temperature							K
-		else if (par == "TR") val = 1473;
-
-		//# Reference Pressure (by ref to M11, not in paper??)  Pa
-		else if (par == "PR") val = 0.2e+9;
-
-		//# Reference Grainsize							m
-		else if (par == "gsR") val = 1e-3;
-
-		//# Activation energy	("H" in the paper)			J mol^-1
-		else if (par == "E") val = 505000;
-
-		//# Activation volume								m^3 mol^-1
-		else if (par == "V") val = 1.2e-5;
-
-		//# Reference Viscosity							Pa s
-		else if (par == "eta0") val = 6.6e+19;
-
-		//# grainsize dependence exponent 		
-		else if (par == "m") val = 3;
-
-		//# Peak standard deviation (value for melt-free Ol)
-		else if (par == "sigmap") val = 4;
-
-		//# Peak pre-exponent	(value for melt-free Ol)
-		else if (par == "Ap") val = 0.007;
-	}
-
-
-	//###########################  Priestley & McKenzie 2013  ###########################
-	else if (model == "P_M13")
-	{
-		//# Shear modulus at TR, PR, 						Pa
-		if (par == "GUR") val = 72.66e+9;
-
-		//# T-derivative of Shear modulus,  				Pa K^-1
-		else if (par == "dGdT") val = -0.00871e+9;
-
-		//# P-derivative of Shear modulus,  				
-		else if (par == "dGdP") val = 2.04;
-
-		//# Activation energy	("U" in the paper)			J mol^-1
-		else if (par == "E") val = 402900;
-
-		//# Activation volume								m^3 mol^-1
-		else if (par == "V") val = 7.81e-6;
-
-		//# Reference Temperature							K
-		else if (par == "TR") val = 1473;
-
-		//# Reference Pressure							Pa 
-		else if (par == "PR") val = 1.5e+9;
-
-		//# Reference Viscosity							Pa s
-		else if (par == "eta0") val = 2.3988e+22;
-
-		//# Reference Grainsize							m
-		else if (par == "gsR") val = 1e-3;
-
-		//# grainsize dependence exponent
-		else if (par == "m") val = 3;
-
-		//# fn polynomial fit parms (equation 26)
-		else if (par == "a0") val = 5.5097e-1;
-		else if (par == "a1") val = 5.4332e-2;
-		else if (par == "a2") val = -2.3615e-3;
-		else if (par == "a3") val = -5.7175e-5;
-		else if (par == "a4") val = 9.9473e-6;
-		else if (par == "a5") val = -3.4761e-7;
-		else if (par == "a6") val = 3.9461e-9;
-	}
-
-	//###########################  LOWER MANTLE GUESSES  ###########################
-	else if (model == "LOWM")
-	{
-		//# Activation volume 						m^3 mol^-1
-		if (par == "V") val = 1e-6;
-	}
-
-
-	return val;
-}
