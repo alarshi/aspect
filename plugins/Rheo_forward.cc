@@ -287,23 +287,85 @@ namespace Rheology_Constants
 
 
 /*
+ * Forward declaration
+ */
+double getconstant(std::string model, std::string par);
+double getfn(double freq, double P, double T, double gs, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN());
+double getJ1byJu(double freq, double P, double T, double gs, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN());
+double getJ2byJu(double freq, double P, double T, double gs, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN());
+double getJu(double T, double P, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN() );
+double gettau(double tau0, double m, double P, double T, double gs, std::string model);
+double intgrate_j1b(double limL, double limH, double alpha, double omega, int N=1000);
+double mccarthyXn(double taun);
+double intgrate_j2b(double limL, double limH, double alpha, double omega, int N=1000);
+double gettauM_P_M13(double T, double P, double Ju);
+
+
+/*
  * ------------------------------------------------------------------
- * 
+ *
  *		MODULES
- * 
+ *
  *-------------------------------------------------------------------
  */
 
 
 
-std::vector<double> linspace(const double a, const double b, const unsigned int N) {
-    double h = (b - a) / static_cast<double>(N-1);
-    std::vector<double> xs(N);
-    typename std::vector<double>::iterator x;
-    double val(a);
-    for (x = xs.begin(); x != xs.end(); ++x, val += h)
-        *x = val;
-    return xs;
+double intgrnd_j1b(double tau, double alpha, double omega) //*
+{
+        return std::pow(tau,alpha-1.0) / (1.0 + std::pow(omega*tau, 2.0) );
+}
+
+
+
+double intgrnd_j1p(double tau, double omega, double tauP, double sigma) //*
+{
+        return ( (1.0/tau) * (1.0 / (1.0 + std::pow(omega*tau, 2.0) ) ) * exp(-std::pow(log(tau/tauP), 2.0) / (2.0*std::pow(sigma, 2.0) ) ) );
+}
+
+
+
+double intgrnd_j2b(double tau, double alpha, double omega) //*
+{
+        return ( std::pow(tau, alpha) / (1.0 + std::pow(omega*tau, 2.0) ) );
+}
+
+
+
+double intgrnd_j2p(double tau, double omega, double tauP, double sigma) //*
+{
+        return ( (1.0/(1.0 + std::pow(omega*tau, 2.0) ) ) * exp(-std::pow(log(tau/tauP), 2.0) / (2.0*std::pow(sigma, 2.0) ) ) );
+}
+
+
+
+/*
+ * ------------------------------------------------------------------
+ * 
+ *              Integrations for Takei 2014
+ * 
+ *-------------------------------------------------------------------
+ */
+
+double intgrnd_j1tak(double tau, double omega, double tauM, double Ap, double sigmap) //*
+{
+        // Integration part of J1byJu term (eqn 8 in Takei et al 2014)
+        return ( (1.0 / tau)*(1.0 / (1.0 + std::pow(omega*tau, 2.0))) * (0.444*std::pow(tau/tauM, 0.38) + Ap*exp(-0.5*std::pow(((log(tau/tauM) + 8.1)/sigmap), 2.0))) );
+}
+
+
+
+double intgrnd_j2tak(double tau, double omega, double tauM, double Ap, double sigmap) //*
+{
+        // Integration part of J2byJu term (eqn 8 in Takei et al 2014)
+        return ( (omega/(1.0 + std::pow(omega*tau, 2.0) ) ) * (0.444*std::pow(tau/tauM, 0.38) + Ap*exp(-0.5*std::pow(((log(tau/tauM) + 8.1) / sigmap), 2.0) ) ) );
+}
+
+
+
+double Vact_lowM(double P, double Vtop, double Vbot, double Ptop, double Pfold) //*
+{
+        return ( Vbot + (Vtop-Vbot) * exp( (Ptop-P) / Pfold ) );
 }
 
 
@@ -311,18 +373,18 @@ std::vector<double> linspace(const double a, const double b, const unsigned int 
 std::pair<double, double> PTd_VsQ( double freq, double P, double T, double gs, double rho, std::string model, double highQapprox, double Vs0 = std::numeric_limits<double>::quiet_NaN() )
 {
 	/*
-	 * This subroutine calculates the values of Vs and Q at a given 
+	 * This subroutine calculates the values of Vs and Q at a given
 	 * PTd condition at a frequency f and density rho. If highQapprox is 1
-	 * approximate values of Vs and Q can be calculated from 
+	 * approximate values of Vs and Q can be calculated from
 	 * e.g. McCarthy et al. (2011) eqn. 24, else use their more explicit form eqn. B6
 	 */
-	
+
 	//---------[ NB this uses V_activation = sloping from 11 - 3 (e-6) in the LM ]---------
-	
-	
+
+
 	double J1byJu, J2byJu, Ju, Vs, G;
-		
-	// Value of the real and complex part of compliance			
+
+	// Value of the real and complex part of compliance
 	if ( std::isnan(Vs0) )
 	{
 		J1byJu = getJ1byJu(freq, P, T, gs, model);
@@ -335,52 +397,52 @@ std::pair<double, double> PTd_VsQ( double freq, double P, double T, double gs, d
 		J2byJu = getJ2byJu(freq, P, T, gs, model, Vs0, rho);
 		Ju = getJu(T, P, model, Vs0, rho);
 	}
-	
-	
+
+
 	double J1 = J1byJu * Ju;
 	double J2 = J2byJu * Ju;
-	
-	
+
+
 	// EVERYONE AGREES
 	double qs = J2 / J1;
-	
-	
-	// VS DISAGREEMENT	
+
+
+	// VS DISAGREEMENT
 	if (model == "M11") Vs = 1.0 / ( sqrt(rho * J1) );
 	else if (model == "P_M13") Vs = 1.0/( sqrt(rho * J1) );
 	else if (model == "JF10_eBurg")
 	{
-		G = pow((J1*J1 + J2*J2), -0.5);
+		G = std::pow((J1*J1 + J2*J2), -0.5);
 		Vs = sqrt(G/rho);
 	}
 	else if (model == "Tak14")
 	{
 		// pdb.set_trace()
-		G = pow(J1*J1 + J2*J2, -0.5);
+		G = std::pow(J1*J1 + J2*J2, -0.5);
 		Vs = sqrt(G/rho);
 	}
-	
-	
+
+
 	// **** When Qs^-1 << 1 (J2/J1 << 1), highQapprox can be 1. If Qs^-1 is not small, Qs^-1 does not equal Qmu^-1 ****
 	if (highQapprox == 0)
 	{
-		double factor = ( 1.0 + sqrt(1.0 + pow((J2/J1), 2.0) ) )/2.0;
+		double factor = ( 1.0 + sqrt(1.0 + std::pow((J2/J1), 2.0) ) )/2.0;
 		qs = qs/factor;
 		Vs = Vs/sqrt(factor);
 	}
-	
-	
+
+
 	double Q = 1.0 / qs;
-	
-	
+
+
 	// if (Q > 1e9) pdb.set_trace();
-	
+
 	return std::make_pair(Vs,Q);
 }
 
 
 
-double getJ1byJu(double freq, double P, double T, double gs, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN() )
+double getJ1byJu(double freq, double P, double T, double gs, std::string model, double Vs0, double rho)
 {
 	// This subroutine gets the value of J1/Ju based on expressions in a paper
 	
@@ -409,13 +471,13 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 		if (fn <= 1.0e+13)
 		{
 			val = 0.0;
-			val = val + a0*(pow(log(fn), 0));
-			val = val + a1*(pow(log(fn), 1));
-			val = val + a2*(pow(log(fn), 2));
-			val = val + a3*(pow(log(fn), 3));
-			val = val + a4*(pow(log(fn), 4));
-			val = val + a5*(pow(log(fn), 5));
-			val = val + a6*(pow(log(fn), 6));
+			val = val + a0*(std::pow(log(fn), 0));
+			val = val + a1*(std::pow(log(fn), 1));
+			val = val + a2*(std::pow(log(fn), 2));
+			val = val + a3*(std::pow(log(fn), 3));
+			val = val + a4*(std::pow(log(fn), 4));
+			val = val + a5*(std::pow(log(fn), 5));
+			val = val + a6*(std::pow(log(fn), 6));
 			J1byJu = 1.0 / val;
 		}
 		else J1byJu = 1.0;
@@ -437,13 +499,13 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 		if (fn <= 1.0e+13)
 		{
 			val = 0.0;
-			val = val + a0*(pow(log(fn), 0));
-			val = val + a1*(pow(log(fn), 1));
-			val = val + a2*(pow(log(fn), 2));
-			val = val + a3*(pow(log(fn), 3));
-			val = val + a4*(pow(log(fn), 4));
-			val = val + a5*(pow(log(fn), 5));
-			val = val + a6*(pow(log(fn), 6));
+			val = val + a0*(std::pow(log(fn), 0));
+			val = val + a1*(std::pow(log(fn), 1));
+			val = val + a2*(std::pow(log(fn), 2));
+			val = val + a3*(std::pow(log(fn), 3));
+			val = val + a4*(std::pow(log(fn), 4));
+			val = val + a5*(std::pow(log(fn), 5));
+			val = val + a6*(std::pow(log(fn), 6));
 			J1byJu = 1.0 / val;
 		}
 		else J1byJu = 1.0;
@@ -465,11 +527,11 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 		double tauL = gettau(tauLR, ma, P, T, gs, model);
 		double tauP = gettau(tauPR, ma, P, T, gs, model);
 		
-		double j1b = (alpha*Delta)/(pow(tauH,alpha) - pow(tauL,alpha));
+		double j1b = (alpha*Delta)/(std::pow(tauH,alpha) - std::pow(tauL,alpha));
 		double j1p = DeltaP/(sigma*sqrt(2*UniversalConst::PI));
 		
 		// !!!!! REPLACE THESE !!!!!
-		double i1b = intgrate_j1b(tauL,tauH,alpha,omega,N=1000);
+		double i1b = intgrate_j1b(tauL,tauH,alpha,omega,1000);
 		double i1p = integrate.quad(intgrnd_j1p, 0, np.inf, args=(omega,tauP,sigma))[0];
 		
 		
@@ -501,7 +563,7 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 
 
 
-double getJ2byJu(double freq, double P, double T, double gs, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN() )
+double getJ2byJu(double freq, double P, double T, double gs, std::string model, double Vs0, double rho)
 {
 	// This subroutine gets the value of J2 based on expressions in a paper
 	
@@ -545,11 +607,11 @@ double getJ2byJu(double freq, double P, double T, double gs, std::string model, 
 		double tauP = gettau(tauPR, ma, P, T, gs, model);
 		tauM = gettau(tauMR, mv, P, T, gs, model);
 		
-		double j2b = omega*(alpha*Delta)/(pow(tauH,alpha) - pow(tauL,alpha));
+		double j2b = omega*(alpha*Delta)/(std::pow(tauH,alpha) - std::pow(tauL,alpha));
 		double j2p = omega*DeltaP/(sigma*sqrt(2*UniversalConst::PI));
 		
-		std::vector<double> tau_arr = linspace(tauL,tauH,100); //tau_arr=np.linspace(tauL,tauH,100);
-		double i2b = intgrate_j2b(tauL, tauH, alpha, omega, int N=1000);
+		std::vector<double> tau_arr = MyUtilities::linspace(tauL,tauH,100); //tau_arr=np.MyUtilities::linspace(tauL,tauH,100);
+		double i2b = intgrate_j2b(tauL, tauH, alpha, omega, 1000);
 		// !!!!! NEED TO REPLACE ITEMS HERE !!!!!
 		double i2p = integrate.quad(intgrnd_j2p, 0, np.inf, args=(omega,tauP,sigma))[0];
 		
@@ -566,7 +628,7 @@ double getJ2byJu(double freq, double P, double T, double gs, std::string model, 
 		// Value of the real and complex part of compliance			
 		double Ju;
 		if ( std::isnan(Vs0) ) Ju = getJu(T, P, model);
-		else Ju = 1.0 / (rho * pow(Vs0, 2.0));
+		else Ju = 1.0 / (rho * std::pow(Vs0, 2.0));
 		
 		
 		omega = 2.0 * UniversalConst::PI * freq;
@@ -592,7 +654,7 @@ double mccarthyXn(double taun)
 	
 	double Xn;
 	
-	if (taun >= 1.0e-11) Xn = 0.32 * (pow(taun, (0.39-0.28/(1.0+2.6 * pow(taun, 0.1) ) ) ) );
+	if (taun >= 1.0e-11) Xn = 0.32 * (std::pow(taun, (0.39-0.28/(1.0+2.6 * std::pow(taun, 0.1) ) ) ) );
 	else Xn = 1853.0 * sqrt(taun);
 	
 	
@@ -601,7 +663,7 @@ double mccarthyXn(double taun)
 
 
 
-double getfn(double freq, double P, double T, double gs, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN() )
+double getfn(double freq, double P, double T, double gs, std::string model, double Vs0, double rho)
 {
 	// Get the normalized frequency from McCarthy et al. (2011) eqn. 19 and 22
 	
@@ -635,20 +697,23 @@ double geteta(double P, double T, double gs, std::string model)
 	double gsR = getconstant(model,"gsR");
 	double eta0 = getconstant(model,"eta0");
 	
-	if (model == "M11" || model == "P_M13") m=getconstant(model,"m");
-	else if (model == "eBurgers") m=getconstant(model,"ma");
+	double m;
+	if (model == "M11" || model == "P_M13")
+	  m=getconstant(model,"m");
+	else if (model == "eBurgers")
+	  m=getconstant(model,"ma");
 	
 	double E = getconstant(model,"E");
 	double R = getconstant("Common","R");
 	
-	double eta = eta0*pow((gs/gsR),m)*exp((E/R)*(TR-T)/(TR*T));
+	double eta = eta0*std::pow((gs/gsR),m)*exp((E/R)*(TR-T)/(TR*T));
 	
 	return eta;
 }
 
 
 
-double getJu(double T, double P, std::string model, double Vs0 = std::numeric_limits<double>::quiet_NaN(), double rho = std::numeric_limits<double>::quiet_NaN() )
+double getJu(double T, double P, std::string model, double Vs0, double rho)
 {
 	// This gets the unrelaxed modulus at T,P conditions based on constants from study
 	
@@ -664,14 +729,14 @@ double getJu(double T, double P, std::string model, double Vs0 = std::numeric_li
 		PR = getconstant(model,"PR");
 		Ju = 1.0*(GUR + dGdT*(T-TR) + dGdP*(P-PR));
 	}
-	else Ju = 1.0/(rho*pow(Vs0, 2.0));
+	else Ju = 1.0/(rho*std::pow(Vs0, 2.0));
 	
 	return Ju;
 }
 
 
 
-double gettau(tau0, m, double P, double T, double gs, std::string model)
+double gettau(double tau0, double m, double P, double T, double gs, std::string model)
 {
 	// calculate the relaxation time at P,T,gs, given model and reference(0) relaxation 
 	// time and grainsize exponent
@@ -692,7 +757,7 @@ double gettau(tau0, m, double P, double T, double gs, std::string model)
 //# 		V = Vact_lowM(P,15e-6,4e-6,24.3e9,11e9)
 	}
 	
-	double tau = tau0 * pow((gs/gsR), m) * exp( (E/R)*(TR-T)/(TR*T) + (V/R)*(P*TR-PR*T)/(T*TR) );
+	double tau = tau0 * std::pow((gs/gsR), m) * exp( (E/R)*(TR-T)/(TR*T) + (V/R)*(P*TR-PR*T)/(T*TR) );
 	
 	return tau;
 }
@@ -703,6 +768,7 @@ double gettauM_P_M13(double T, double P, double Ju)  // !!!!! getconstant needs 
 {
 	// This gets the Maxwell relaxation time at T,P conditions based on constants
 	// from study model='P_M13'
+        const std::string model = "P_M13";
 	double TR = getconstant(model,"TR");
 	double PR = getconstant(model,"PR");
 	double E = getconstant(model,"E");
@@ -765,16 +831,16 @@ struct Function_J1B
 	Function_J1B (double A, double w) : alpha(A), omega(w) {}
 	double operator()(double xx)
 	{
-		return ( pow(xx, alpha-1.0) / (1.0 + pow(omega*xx, 2.0) ) );
+		return ( std::pow(xx, alpha-1.0) / (1.0 + std::pow(omega*xx, 2.0) ) );
 	}
 };
-double intgrate_j1b(double limL, double limH, double alpha, double omega, int N=1000) //*
+double intgrate_j1b(double limL, double limH, double alpha, double omega, int N) //*
 {
-	std::vector<double xx = MyUtilities::logspace(log10(limL), log10(limH), N, 10.0);
+	std::vector<double> xx = MyUtilities::logspace(log10(limL), log10(limH), N, 10.0);
 	std::vector<double> yy(xx.size(),0.0);
 	//for (unsigned int ii=0; ii<xx.size(); ++ii)
 	//{
-	//	yy[ii] = pow(xx[ii], alpha-1.0) / (1.0 + pow(omega*xx[ii], 2.0) );
+	//	yy[ii] = std::pow(xx[ii], alpha-1.0) / (1.0 + std::pow(omega*xx[ii], 2.0) );
 	//}
 	
 	
@@ -827,17 +893,17 @@ struct Function_J2B
 	Function_J2B (double A, double w) : alpha(A), omega(w) {}
 	double operator()(double xx)
 	{
-		return ( pow(xx, alpha) / (1.0 + pow(omega*xx, 2.0) ) );
+		return ( std::pow(xx, alpha) / (1.0 + std::pow(omega*xx, 2.0) ) );
 	}
 };
-double intgrate_j2b(double limL, double limH, double alpha, double omega, int N=1000) //*
+double intgrate_j2b(double limL, double limH, double alpha, double omega, int N) //*
 {
 	std::vector<double> xx = MyUtilities::logspace(log10(limL), log10(limH), N, 10.0);
 	std::vector<double> yy(xx.size(),0.0);
 	/*
 	for (unsigned int ii=0; ii<xx.size(); ++ii)
 	{
-		yy[ii] = pow(xx[ii], alpha) / (1.0 + pow(omega*xx[ii], 2.0) );
+		yy[ii] = std::pow(xx[ii], alpha) / (1.0 + std::pow(omega*xx[ii], 2.0) );
 	}
 	*/
 	
@@ -887,7 +953,7 @@ struct Function_J1P
 	Function_J1P (double w, double Tau, double Sig) : omega(w), tauP(Tau), sigma(Sig) {}
 	double operator()(double xx)
 	{
-		return ( (1.0/xx) * (1.0/(1.0 + pow(omega*xx,2.0))) * exp(-pow(log(xx/tauP), 2.0) / (2.0*pow(sigma, 2.0))) );
+		return ( (1.0/xx) * (1.0/(1.0 + std::pow(omega*xx,2.0))) * exp(-std::pow(log(xx/tauP), 2.0) / (2.0*std::pow(sigma, 2.0))) );
 	}
 };
 double intgrate_j1p(double limL, double limH, double omega, double tauP, double sigma, int N=1000) //*
@@ -897,7 +963,7 @@ double intgrate_j1p(double limL, double limH, double omega, double tauP, double 
 	/*
 	for (unsigned int ii=0; ii<xx.size(); ++ii)
 	{
-		yy[ii] = (1.0/xx[ii]) * (1.0/(1.0 + pow(omega*xx[ii],2.0))) * exp(-pow(log(xx[ii]/tauP), 2.0) / (2.0*pow(sigma, 2.0)));
+		yy[ii] = (1.0/xx[ii]) * (1.0/(1.0 + std::pow(omega*xx[ii],2.0))) * exp(-std::pow(log(xx[ii]/tauP), 2.0) / (2.0*std::pow(sigma, 2.0)));
 	}
 	*/
 	
@@ -930,128 +996,6 @@ double intgrate_j1p(double limL, double limH, double omega, double tauP, double 
 	return I;
 	*/
 	return yy[xx.size()-1]; // Only return the last element
-}
-
-
-
- /**
- * Function to calculate the function from J2P at a
- * specific coordinate xx.
- * 
- * Needs to be integrated over xx
- */
-/*
-template <class T>
-struct Function_J2P
-{
-	double omega, tauP, sigma;
-	
-	Function_J2P (double w, double Tau, double Sig) : omega(w), tauP(Tau), sigma(Sig) {}
-	double operator()(double xx)
-	{
-		return ( (1.0/(1.0 + pow(omega*xx,2.0)))*exp(-pow(log(xx/tauP),2.0)/(2.0*pow(sigma,2.0))) );
-	}
-}; 
-double intgrate_j2p(double limL, double limH, double omega, double tauP, double sigma, int N=1000) //*
-{
-	std::vector<double> xx = MyUtilities::logspace(log10(limL), log10(limH), N, 10.0);
-	std::vector<double> yy(xx.size(),0.0);
-	
-	//for (unsigned int ii=0; ii<xx.size(); ++ii)
-	//{
-	//	yy[ii] = (1.0/(1.0 + pow(omega*xx[ii],2.0)))*exp(-pow(log(xx[ii]/tauP),2.0)/(2.0*pow(sigma,2.0)));
-	//}
-	
-	
-	
-	Function_J2P<double> J2Pfunc(omega, tauP, sigma);
-	
-	
-	// !!! SHIFT TO START FROM 1 TO XX.SIZE() AND FIRST ELEMENT IS 0 !!!
-	for (unsigned int inc=1; inc<xx.size(); ++inc)
-	{
-		unsigned int inc_prev = inc - 1;
-		double inc1 = xx[inc_prev];
-		double inc2 = xx[inc];
-		
-		
-		// Calculate the cumulative integral
-		double current_increment = IntegrationRoutines::qromb(J2Pfunc,inc1,inc2, 1.0e-10);
-		if (inc == 0)
-		{
-			yy[inc] = current_increment;
-		}
-		else
-		{
-			yy[inc] = yy[inc-1] + current_increment;
-		}
-	}
-	
-	//I=integrate.cumtrapz(yy,xx)
-	//I = I[len(I)-1]
-	//return I;
-	
-	return yy[xx.size()-1]; // Only return the last element
-}
-*/
-
-
-
-double intgrnd_j1b(double tau, double alpha, double omega) //*
-{
-	return ( ( pow(tau,alpha-1.0) )/(1.0 + pow( ( (omega*tau), 2.0) ) ) );
-}
-
-
-
-double intgrnd_j1p(double tau, double omega, double tauP, double sigma) //*
-{
-	return ( (1.0/tau) * (1.0 / (1.0 + pow(omega*tau, 2.0) ) ) * exp(-pow(log(tau/tauP), 2.0) / (2.0*pow(sigma, 2.0) ) ) );
-}
-
-
-
-double intgrnd_j2b(double tau, double alpha, double omega) //*
-{
-	return ( pow(tau, alpha) / (1.0 + pow(omega*tau, 2.0) ) );
-}
-
-
-
-double intgrnd_j2p(double tau, double omega, double tauP, double sigma) //*
-{
-	return ( (1.0/(1.0 + pow(omega*tau, 2.0) ) ) * exp(-pow(log(tau/tauP), 2.0) / (2.0*pow(sigma, 2.0) ) ) );
-}
-
-
-
-/*
- * ------------------------------------------------------------------
- * 
- *		Integrations for Takei 2014
- * 
- *-------------------------------------------------------------------
- */
-
-double intgrnd_j1tak(double tau, double omega, double tauM, double Ap, double sigmap) //*
-{
-	// Integration part of J1byJu term (eqn 8 in Takei et al 2014)
-	return ( (1.0 / tau)*(1.0 / (1.0 + pow(omega*tau, 2.0))) * (0.444*pow(tau/tauM, 0.38) + Ap*exp(-0.5*pow(((log(tau/tauM) + 8.1)/sigmap), 2.0))) );
-}
-
-
-
-double intgrnd_j2tak(double tau, double omega, double tauM, double Ap, double sigmap) //*
-{
-	// Integration part of J2byJu term (eqn 8 in Takei et al 2014)
-	return ( (omega/(1.0 + pow(omega*tau, 2.0) ) ) * (0.444*pow(tau/tauM, 0.38) + Ap*exp(-0.5*pow(((log(tau/tauM) + 8.1) / sigmap), 2.0) ) ) );
-}
-
-
-
-double Vact_lowM(double P, double Vtop, double Vbot, double Ptop, double Pfold) //*
-{
-	return ( Vbot + (Vtop-Vbot) * exp( (Ptop-P) / Pfold ) );
 }
 
 
@@ -1322,5 +1266,5 @@ double getconstant(std::string model, std::string par)  // !!!!! THIS FUNCTION N
 	}
 
 
-return val;
+	return val;
 }

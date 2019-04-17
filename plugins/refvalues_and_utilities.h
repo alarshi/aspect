@@ -8,7 +8,7 @@
 #include <string>
 #include <map>
 
-#include "nr3.h"
+//#include "nr3.h"
 //#include "hash_mod.h"
 //#include "ran_mod.h"
 
@@ -470,233 +470,7 @@ namespace MyUtilities
 		}
 		return depth_increasing;
 	}
-	
-	
-	
-	/**
-         * The following set of routines solve a set of
-	 * linear equations (A %cdot x = b)
-	 * using Lower Upper (LU) decomposition.
-         */
-	//  --------------------------------------------------
-	
-	struct LUdcmp
-	{
-	  // Object for solving linear equations A*x=b using LU decomposition,  and related functions.
-	  
-	  int n;
-	  MatDoub lu;                                              // Stores the decomposition
-	  VecInt indx;                                             // Stores the permutation
-	  double d;                                                // Used by det
-	  
-	  LUdcmp(MatDoub_I &a);                                    // Constructor. Argument is the matrix A
-	  
-	  void solve(VecDoub_I &b,  VecDoub_O &x);                 // Solve for a single right-hand side
-	  void solve(MatDoub_I &b,  MatDoub_O &x);                 // Solve for multiple right-hand sides
-	  
-	  void inverse(MatDoub_O &ainv);                           // Calculate matrix inverse A^(-1)
-	  
-	  double det();                                            // Return determinant of A
-	  
-	  void mprove(VecDoub_I &b,  VecDoub_IO &x);               // Discussed in SS2.5
-	  MatDoub_I &aref;                                         // Used only by mprove
-	  
-	};
-	
-	
-	LUdcmp::LUdcmp(MatDoub_I &a) : n(a.nrows()), lu(a),  aref(a),  indx(n)
-	{
-	  //  Given a matrix a[0...n-1][0...n-1], this routine replaces it by the LU decomposition of a
-	  //  rowwise permutation of itself. a is input. On output, it is arranged as in equation (2.3.14)
-	  //  above; indx[0...n-1] is an output vector that records the row permutation effected by the
-	  //  partial pivoting; d is output as +-1 depending on whether the number of row interchanges
-	  //  was even or odd,  respectively. This routine is used in combination with "solve" to solve linear
-	  //  equations or invert a matrix.
-	  
-	  const double TINY = 1.0e-40;                             // A small number
-	  int i, imax, j, k;
-	  double big, temp;
-	  std::vector<double> vv(n);                               // vv stores the implicit scaling of each row
-	  
-	  d = 1.0;                                                 // No row interchanges yet
-	  
-	  for (i = 0; i<n; i++)                                    // Loop over rows to get the implicit scaling information
-	  {
-	    big = 0.0;
-	    
-	    for (j=0; j<n; j++) if ( (temp = abs(lu[i][j])) > big ) big = temp;
-	    
-	    if (big == 0.0) throw("Singular matrix in LUdcmp");
-	    
-	    // No nonzero largest element
-	    vv[i] = 1.0/big;                                       // Save the scaling
-	  }
-	  
-	  for (k = 0; k<n; k++)                                    // This is the outermost kij loop
-	  {
-	    big = 0.0;                                             // Initialize for the search for largest pivot element
-	    
-	    imax = k;
-	    
-	    for (i = k; i<n; i++)
-	    {
-	      temp = vv[i] * abs(lu[i][k]);
-	      if (temp>big)
-	      {                                                    // Is the figure of merit for the pivot better than the best so far?
-		big = temp;
-		imax = i;
-	      }
-	    }
-	    
-	    if (k != imax)
-	    {							// Do we need to interchange rows?
-	      for (j=0; j<n; j++)
-	      {							// Yes, do so...
-		temp = lu[imax][j];
-		lu[imax][j] = lu[k][j];
-		lu[k][j] = temp;
-	      }
-	      
-	      d = -d;						// ...and change the parity of d.
-	      vv[imax] = vv[k];					// Also interchange the scale factor
-	    }
-	    
-	    indx[k] = imax;
-	    
-	    if (lu[k][k] == 0.0) lu[k][k]=TINY;
-	    // If the pivot element is zero, the matrix is singular (at least to the precision of
-	    // the algorithm). For some applications on singular matrices, it is desirable to
-	    // substitute TINY for zero.
-	    
-	    for (i=k+1; i<n; i++)
-	    {
-	      temp = lu[i][k] /= lu[k][k];			// Divide by the pivot element
-	      
-	      for (j=k+1; j<n; j++) lu[i][j] -= temp*lu[k][j];	// Innermost loop: reduce remaining submatrix
-	    }
-	  }
-	  
-	}
-	
-	
-	void LUdcmp::solve(VecDoub_I &b, VecDoub_O &x)
-	{
-	  // Solves the set of n linear equations A*x=b using the stored LU decomposition of A.
-	  // b[0..n-1] is input as the right-hand side vector b, while x returns the solution vector x;
-	  // b and x may reference the same vector, in which case the solution overwrites the input.
-	  // This routine takes into account the possibility that b will begin with many zero elements,
-	  // so it is efficient for use in matrix inversion.
-	  
-	  int i, ii=0, ip, j;
-	  double sum;
-	  
-	  if (b.size() != n || x.size() != n) throw("LUdcmp::solve bad sizes");
-	  
-	  for (i=0; i<n; i++) x[i] = b[i];
-	  
-	  // When ii is set to a positive value, it will become the index of the
-	  // first nonvanishing elements of b. We now do the forward substitution,
-	  // equation (2.3.6). The only new wrinkle is to unscramble the permutation
-	  // as we go.
-	  for (i=0; i<n; i++)
-	  {
-	    ip = indx[i];
-	    sum = x[ip];
-	    x[ip] = x[i];
-	    
-	    if (ii != 0) for (j=ii-1; j<i; j++) sum -= lu[i][j]*x[j];
-	    
-	    // A nonzero element was encountered, so from now on we
-	    // will have to do the sums in the loop above.
-	    else if (sum != 0.0) ii = i+1;
-	    
-	    x[i] = sum;
-	  }
-	  
-	  for (i=n-1; i>=0; i--)
-	  { 				// Now we do the backsubstitution, equation (2.3.7)
-	    sum = x[i];
-	    for (j=i+1; j<n; j++) sum -= lu[i][j]*x[j];
-	    x[i] = sum/lu[i][i];	// Store a component of the solution vector X
-	  }				// All done!
-	  
-	}
-	
-	
-	void LUdcmp::solve(MatDoub_I &b, MatDoub_O &x)
-	{
-	  // Solves m sets of n linear equations A*X=B using the stored LU decompostion of A.
-	  // The matrix b[0..n-1][0..m-1] inputs the right-hand sides, while x[0..n-1][0..m-1]
-	  // returns the solution A^(-1)*B. b and x may reference the same matrix, in which
-	  // case the solution overwrites the input.
-	  
-	  int i, j, m=b.ncols();
-	  
-	  if ( b.nrows() != n || x.nrows() != n || b.ncols() != x.ncols() ) throw("LUdcmp::solve bad sizes");
-	  
-	  VecDoub xx(n); //std::vector<double> xx(n);
-	  
-	  for (j=0; j<m; j++)
-	  {				// Copy and solve each column in turn
-	    for (i=0; i<n; i++) xx[i] = b[i][j];
-	    solve(xx,xx);
-	    for (i=0; i<n; i++) x[i][j] = xx[i];
-	  }
-	}
-	
-	
-	void LUdcmp::inverse(MatDoub_O &ainv)
-	{
-	  // Using the stored LU decomposition, return in ainv the matrix inverse A^(-1)
-	  
-	  int i, j;
-	  ainv.resize(n,n);
-	  
-	  for (i=0; i<n; i++)
-	  {
-	    for (j=0; j<n; j++) ainv[i][j] = 0.0;
-	    ainv[i][i] = 1.0;
-	  }
-	  
-	  solve(ainv, ainv);
-	}
-	
-	
-	double LUdcmp::det()
-	{
-	  // Using the stored LU decomposition, return the determinant of the matrix A
-	  
-	  double dd = d;
-	  for (int i=0; i<n; i++) dd *= lu[i][i];
-	  return dd;
-	}
-	
-	
-	void LUdcmp::mprove(VecDoub_I &b, VecDoub_IO &x)
-	{
-	  // Improves a solution vector x[0..n-1] of the linear set of equations A*x=b.
-	  // The vectors b[0..n-1] and x[0..n-1] are input. On output, x[0..n-1] is
-	  // modified, to an improved set of values.
-	  
-	  int i, j;
-	  VecDoub r(n); //std::vector<double> r(n);
-	  
-	  // Calculate the right-hand side, accumulating the residual in higher precision
-	  for (i=0; i<n; i++)
-	  {
-	    Ldoub sdp = -b[i];
-	    
-	    for (j=0; j<n; j++) sdp += (Ldoub)aref[i][j] * (Ldoub)x[j];
-	    r[i] = sdp;
-	  }
-	  
-	  // Solve for the error term, and subtract it from the old solution
-	  solve(r,r);
-	  for (i=0; i<n; i++) x[i] -= r[i];
-	}
-	//  --------------------------------------------------
 }
-
 
 
 namespace PTUtilities
@@ -1070,470 +844,8 @@ namespace SearchUtilities
     Boxnode() {}
     Boxnode(Point<dim> mylo, Point<dim> myhi, int mymom, int myd1, int myd2, int myptlo, int mypthi) : Box<dim>(mylo, myhi), mom(mymom), dau1(myd1), dau2(myd2), ptlo(myptlo), pthi(mypthi) {}
   };
-  //  --------------------------------------------------
-  
-  
-  
-  /**
-   * Setup the KDTree search method:
-   * 	search a set of n-dimensional coordinates
-   * 	with m-dimensional data to locate specific
-   * 	points and nearest neighbors
-   */
-  //  --------------------------------------------------
-  
-  template <int dim>
-  struct KDtree
-  {
-    // Structure for implementing a KD tree
-    
-    static const double BIG;			// Size of the root box, value set below
-    int nboxes, npts;				// Number of boxes, number of points
-    std::vector< Point<dim> > &ptss;		// Reference to the vector of points in the KD tree
-    Boxnode<dim> *boxes;			// the array of Boxnodes that form the tree
-    std::vector<int> ptindx, rptindx;		// Index of points (see text), and reverse index
-    double *coords;				// Point coordinates rearranged contiguously
-    
-    KDtree(std::vector< Point<dim> > &pts);	// Constructor
-    ~KDtree() {delete [] boxes;}
-    
-    // Next, utility functions for use after the tree is constructed. See below.
-    double disti(int jpt, int kpt);
-    int locate(Point<dim> pt);
-    int locate(int jpt);
-    
-    // Next, applications that use the KD tree. See text
-    int nearest(Point<dim> pt);
-    void nnearest(int jpt, int *nn, double *dn, int n);
-    static void sift_down(double *heap, int *ndx, int nn);	// Used by nnearest
-    int locatenear(Point<dim> pt, double r, int *list, int nmax);
-  };
-  
-  
-  template <int dim>
-  const double KDtree<dim>::BIG(1.0e99);
-  
-  int selecti(const int k, int *indx, int n, double *arr)
-  {
-    // Permutes indx[0..n-1] to make arr[indx[0..k-1]] <= arr[indx[k+1..n-1]].
-    // The array arr is not modified. See comments in the routine select.
-    
-    int i, ia, ir, j, l, mid;
-    double a;
-    
-    l = 0;
-    ir = n-1;
-    
-    for (;;)
-    {
-      if (ir <= l+1)
-      {
-	if (ir == l+1 && arr[indx[ir]] < arr[indx[l]]) SWAP(indx[l], indx[ir]);
-	return indx[k];
-      }
-      else
-      {
-	mid = (l+ir) >> 1;
-	SWAP(indx[mid], indx[l+1]);
-	
-	if (arr[indx[l]] > arr[indx[ir]]) SWAP(indx[l], indx[ir]);
-	if (arr[indx[l+1]] > arr[indx[ir]]) SWAP(indx[l+1], indx[ir]);
-	if (arr[indx[l]] > arr[indx[l+1]]) SWAP(indx[l], indx[l+1]);
-	
-	i = l+1;
-	j = ir;
-	ia = indx[l+1];
-	a = arr[ia];
-	
-	for (;;)
-	{
-	  do i++; while (arr[indx[i]] < a);
-	  do j--; while (arr[indx[j]] > a);
-	  
-	  if (j<i) break;
-	  SWAP(indx[i], indx[j]);
-	}
-	
-	indx[l+1] = indx[j];
-	indx[j] = ia;
-	if (j >= k) ir = j-1;
-	if (j <= k) l = i;
-      } 
-    }
-  }
-  
-  
-  template <int dim>
-  KDtree<dim>::KDtree(std::vector< Point<dim> > &pts) : ptss(pts), npts(pts.size()), ptindx(npts), rptindx(npts)
-  {
-    // Construct a KDtree from a vector of points
-    
-    int ntmp, m, k, kk, j, nowtask, jbox, np, tmom, tdim, ptlo, pthi;
-    int *hp;
-    double *cp;
-    int taskmom[50], taskdim[50];		// Enough stack for 2^50 points!
-    
-    // Initialize the index of points
-    for (k=0; k<npts; k++) ptindx[k] = k;
-    
-    // Calculate the number of boxes and allocate memory for them
-    m = 1;
-    for (ntmp = npts; ntmp; ntmp >>= 1) m <<= 1;
-    
-    nboxes = 2*npts - (m >> 1);
-    if (m < nboxes) nboxes = m;
-    nboxes--;
-    
-    boxes = new Boxnode<dim>[nboxes];
-    
-    // Copy the point coordinates into a contiguous array
-    coords = new double[dim*npts];
-    for (j=0, kk=0; j<dim; j++, kk += npts)
-    {
-      for (k=0; k<npts; k++) coords[kk+k] = pts[k].x[j];
-    }
-    
-    // Initialize the root box and put it on the task list for subdivision
-    Point<dim> lo(-BIG, -BIG, -BIG), hi(BIG, BIG, BIG);	// Syntax OK for 2-D too
-    
-    boxes[0] = Boxnode<dim>(lo, hi, 0, 0, 0, 0, npts-1);
-    
-    jbox = 0;
-    taskmom[1] = 0;		// Which box
-    taskdim[1] = 0;		// Which dimension
-    nowtask = 1;
-    
-    // Main loop over pending tasks
-    while (nowtask)
-    {
-      tmom = taskmom[nowtask];
-      tdim = taskdim[nowtask--];
-      ptlo = boxes[tmom].ptlo;
-      pthi = boxes[tmom].pthi;
-      hp = &ptindx[ptlo];		// Points to left end of subdivision
-      cp = &coords[tdim*npts];		// Points to coordinate list for current dim
-      np = pthi - ptlo + 1;		// Number of points in the subdivision
-      kk = (np-1)/2;			// Index of last point on left (boundary point)
-      
-      // Here is where all the work is done
-      (void) selecti(kk, hp, np, cp);
-      
-      // Now create the daughters and push them onto the task list if they need further subdividing
-      hi = boxes[tmom].hi;
-      lo = boxes[tmom].lo;
-      hi.x[tdim] = lo.x[tdim] = coords[tdim*npts + hp[kk]];
-      
-      boxes[++jbox] = Boxnode<dim>(boxes[tmom].lo, hi, tmom, 0, 0, ptlo, ptlo+kk);
-      boxes[++jbox] = Boxnode<dim>(lo, boxes[tmom].hi, tmom, 0, 0, ptlo+kk+1, pthi);
-      boxes[tmom].dau1 = jbox-1;
-      boxes[tmom].dau2 = jbox;
-      
-      if (kk > 1)
-      {
-	taskmom[++nowtask] = jbox-1;
-	taskdim[nowtask] = (tdim+1) % dim;
-      }
-      if (np - kk > 3)
-      {
-	taskmom[++nowtask] = jbox;
-	taskdim[nowtask] = (tdim+1) % dim;
-      }
-    }
-    
-    for (j=0; j<npts; j++) rptindx[ptindx[j]] = j;	// Create reverse index
-    
-    delete [] coords;					// Don't need them anymore
-    
-  }
-  
-  
-  template <int dim>
-  double KDtree<dim>::disti(int jpt, int kpt)
-  {
-    // Returns the distance between two points in the KDtree given their indices
-    // in the array of points, but returns a large value if the points are identical
-    
-    if (jpt == kpt) return BIG;
-    else return dist(ptss[jpt], ptss[kpt]);
-  }
-  
-  
-  template <int dim>
-  int KDtree<dim>::locate( Point<dim> pt )
-  {
-    // Given an arbitrary point pt, return the index of which KDtree box it is in
-    
-    int nb, d1, jdim;
-    
-    nb = jdim = 0;		// Start with the root box
-    
-    // As far as possible down the tree
-    while (boxes[nb].dau1)
-    {
-      d1 = boxes[nb].dau1;
-      
-      if (pt.x[jdim] <= boxes[d1].hi.x[jdim]) nb = d1;
-      else nb = boxes[nb].dau2;
-      
-      // Increment the dimension cyclically
-      jdim = ++jdim % dim;
-    }
-    
-    return nb;
-  }
-  
-  
-  template <int dim>
-  int KDtree<dim>::locate( int jpt )
-  {
-    // Given the index of a point in the KDtree, return the index of which box it is in
-    
-    int nb, d1, jh;
-    
-    // The reverse index tells where the point lies in the index of points
-    jh = rptindx[jpt];
-    
-    nb = 0;
-    
-    while (boxes[nb].dau1)
-    {
-      d1 = boxes[nb].dau1;
-      
-      if (jh <= boxes[d1].pthi) nb = d1;
-      else nb = boxes[nb].dau2;
-    }
-    
-    return nb;
-  }
-  
-  
-  template <int dim>
-  int KDtree<dim>::nearest( Point<dim> pt)
-  {
-    // Given an arbitrary location pt, return the index of the nearest point in the KDtree
-    
-    int i, k, nrst, ntask;
-    int task[50];		// Stack for boxes waiting to be opened
-    double dnrst = BIG, d;
-    
-    // First stage, we find the nearest KDtree point in same box as pt
-    k = locate(pt);		// Which box is pt in?
-    
-    // Find nearest
-    for (i=boxes[k].ptlo; i<=boxes[k].pthi; i++)
-    {
-      d = dist(ptss[ptindx[i]], pt);
-      
-      if (d < dnrst)
-      {
-	nrst = ptindx[i];
-	dnrst = d;
-      }
-    }
-    
-    // Second stage, we traverse the tree opening only possibly better boxes
-    task[1] = 0;
-    ntask = 1;
-    while (ntask)
-    {
-      k = task[ntask--];
-      
-      // Distance to closest point in box
-      if (dist(boxes[k], pt) < dnrst)
-      {
-	// If not an end node, put on task list
-	if (boxes[k].dau1)
-	{
-	  task[++ntask] = boxes[k].dau1;
-	  task[++ntask] = boxes[k].dau2;
-	}
-	else
-	{
-	  // Check the 1 or 2 points in the box
-	  
-	  for (i=boxes[k].ptlo; i<=boxes[k].pthi; i++)
-	  {
-	    d = dist(ptss[ptindx[i]], pt);
-	    
-	    if (d < dnrst)
-	    {
-	      nrst = ptindx[i];
-	      dnrst = d;
-	    }
-	  }
-	}
-      }
-    }
-    
-    return nrst;
-  }
-  
-  
-  template <int dim>
-  void KDtree<dim>::nnearest(int jpt, int *nn, double *dn, int n)
-  {
-    // Given the index jpt of a point in a KDtree, return a list nn[0..n-1] of indices of the
-    // n points in the tree nearest to point jpt, and a list dn[0..n-1] of their distances.
-    
-    int i, k, ntask, kp;
-    int task[50];		// Stack for boxes to be opened
-    double d;
-    
-    if (n > npts-1) throw("too many neighbors requested");
-    
-    for (i=0; i<n; i++) dn[i] = BIG;
-    
-    // Find smallest mother box with enough points to initialize the heap
-    kp = boxes[locate(jpt)].mom;
-    
-    while (boxes[kp].pthi - boxes[kp].ptlo < n) kp = boxes[kp].mom;
-    
-    // Examine its points and save the n closest
-    for (i=boxes[kp].ptlo; i<=boxes[kp].pthi; i++)
-    {
-      if (jpt == ptindx[i]) continue;
-      d = disti(ptindx[i], jpt);
-      
-      if (d < dn[0])
-      {
-	dn[0] = d;
-	nn[0] = ptindx[i];
-	if (n>1) sift_down(dn, nn, n);		// Maintain the heap structure
-      }
-    }
-    
-    // Now we traverse the tree opening only possibly better boxes
-    task[1] = 0;
-    ntask = 1;
-    while (ntask)
-    {
-      k = task[ntask--];
-      
-      if (k == kp) continue;		// Don't redo the box used to initialize
-      
-      if (dist(boxes[k], ptss[jpt]) < dn[0])
-      {
-	// If not an end node, put it on task list
-	if (boxes[k].dau1)
-	{
-	  task[++ntask] = boxes[k].dau1;
-	  task[++ntask] = boxes[k].dau2;
-	}
-	// Check the 1 or 2 points in the box
-	else
-	{
-	  for (i=boxes[k].ptlo; i<=boxes[k].pthi; i++)
-	  {
-	    d = disti(ptindx[i], jpt);
-	    if (d < dn[0])
-	    {
-	      dn[0] = d;
-	      nn[0] = ptindx[i];
-	      if (n>1) sift_down(dn, nn, n);	// Maintain the heap
-	    }
-	  }
-	}
-      }
-    }
-    
-    return;
-  }
-  
-  
-  template <int dim>
-  void KDtree<dim>::sift_down(double *heap, int *ndx, int nn)
-  {
-    // Fix heap[0..nn-1], whose first element (only) may be wrongly filed. Make a
-    // corresponding permutation in ndx[0..nn-1]. The algorithm is identical
-    // to that used by sift_down in hpsort.
-    
-    int n = nn -1;
-    int j, jold, ia;
-    double a;
-    
-    a = heap[0];
-    ia = ndx[0];
-    jold = 0;
-    
-    j = 1;
-    while (j <= n)
-    {
-      if (j < n && heap[j] < heap[j+1]) j++;
-      if (a >= heap[j]) break;
-      
-      heap[jold] = heap[j];
-      ndx[jold] = ndx[j];
-      
-      jold = j;
-      j = 2*j + 1;
-    }
-    
-    heap[jold] = a;
-    ndx[jold] = ia;
-  }
-  
-  
-  template <int dim>
-  int KDtree<dim>::locatenear( Point<dim> pt, double r, int *list, int nmax)
-  {
-    // Given a point pt and radius r, returns a value nret such that list[0..nret-1] is a list of
-    // all KDtree points within a radius r of pt, up to a user-specified maximum of nmax points.
-    
-    int k, i, nb, nbold, nret, ntask, jdim, d1, d2;
-    int task[50];
-    
-    nb = jdim = nret = 0;
-    
-    if (r < 0.0) throw("radius must be nonnegative");
-    
-    // Find the smallest box that contains the "ball" of radius r
-    while (boxes[nb].dau1)
-    {
-      nbold = nb;
-      d1 = boxes[nb].dau1;
-      d2 = boxes[nb].dau2;
-      
-      // Only need to check the dimension that divides the daughters
-      if (pt.x[jdim] + r <= boxes[d1].hi.x[jdim]) nb = d1;
-      else if (pt.x[jdim] - r >= boxes[d2].lo.x[jdim]) nb = d2;
-      
-      jdim = ++jdim % dim;
-      
-      // Neither daughter encloses the ball
-      if (nb == nbold) break;
-    }
-    
-    // Now traverse the tree below the starting box only as needed
-    task[1] = nb;
-    ntask = 1;
-    
-    while (ntask)
-    {
-      k = task[ntask--];
-      
-      if (dist(boxes[k], pt) > r) continue;		// Box and ball are disjoint
-      
-      // Expand box further when possible
-      if (boxes[k].dau1)
-      {
-	task[++ntask] = boxes[k].dau1;
-	task[++ntask] = boxes[k].dau2;
-      }
-      // Otherwise process points in the box
-      else
-      {
-	for (i=boxes[k].ptlo; i<=boxes[k].pthi; i++)
-	{
-	  if (dist(ptss[ptindx[i]], pt) <= r && nret < nmax) list[nret++] = ptindx[i];
-	  if (nret == nmax) return nmax;		// Not enough space!
-	}
-      }
-    }
-    
-    return nret;
-  }
-  //  --------------------------------------------------
 }
+  //  --------------------------------------------------
 
 
 namespace InterpolationRoutines
@@ -1542,29 +854,29 @@ namespace InterpolationRoutines
 	
 	struct Base_interp
 	{
-		Int n, mm, jsav, cor, dj;
-		const Doub *xx, *yy;
-		Base_interp(VecDoub_I &x, const Doub *y, Int m)
+		int n, mm, jsav, cor, dj;
+		const double *xx, *yy;
+		Base_interp(std::vector<double> &x, const double *y, int m)
 			: n(x.size()), mm(m), jsav(0), cor(0), xx(&x[0]), yy(y) {
-			dj = MyUtilities::MAX(1,(int)pow((Doub)n,0.25));
+			dj = std::max(1,(int)pow((double)n,0.25));
 		}
 
-		Doub interp(Doub x) {
-			Int jlo = cor ? hunt(x) : locate(x);
+		double interp(double x) {
+			int jlo = cor ? hunt(x) : locate(x);
 			return rawinterp(jlo,x);
 		}
 
-		Int locate(const Doub x);
-		Int hunt(const Doub x);
+		int locate(const double x);
+		int hunt(const double x);
 		
-		Doub virtual rawinterp(Int jlo, Doub x) = 0;
+		double virtual rawinterp(int jlo, double x) = 0;
 
 	};
-	Int Base_interp::locate(const Doub x)
+	int Base_interp::locate(const double x)
 	{
-		Int ju,jm,jl;
+		int ju,jm,jl;
 		if (n < 2 || mm < 2 || mm > n) throw("locate size error");
-		Bool ascnd=(xx[n-1] >= xx[0]);
+		bool ascnd=(xx[n-1] >= xx[0]);
 		jl=0;
 		ju=n-1;
 		while (ju-jl > 1) {
@@ -1576,13 +888,13 @@ namespace InterpolationRoutines
 		}
 		cor = abs(jl-jsav) > dj ? 0 : 1;
 		jsav = jl;
-		return MyUtilities::MAX(0,MIN(n-mm,jl-((mm-2)>>1)));
+		return std::max(0,std::min(n-mm,jl-((mm-2)>>1)));
 	}
-	Int Base_interp::hunt(const Doub x)
+	int Base_interp::hunt(const double x)
 	{
-		Int jl=jsav, jm, ju, inc=1;
+		int jl=jsav, jm, ju, inc=1;
 		if (n < 2 || mm < 2 || mm > n) throw("hunt size error");
-		Bool ascnd=(xx[n-1] >= xx[0]);
+		bool ascnd=(xx[n-1] >= xx[0]);
 		if (jl < 0 || jl > n-1) {
 			jl=0;
 			ju=n-1;
@@ -1619,16 +931,16 @@ namespace InterpolationRoutines
 		}
 		cor = abs(jl-jsav) > dj ? 0 : 1;
 		jsav = jl;
-		return MyUtilities::MAX(0,MIN(n-mm,jl-((mm-2)>>1)));
+		return std::max(0,std::min(n-mm,jl-((mm-2)>>1)));
 	}
 	
 	
 	
 	struct Linear_interp : Base_interp
 	{
-		Linear_interp(VecDoub_I &xv, VecDoub_I &yv)
+		Linear_interp(std::vector<double> &xv, std::vector<double> &yv)
 			: Base_interp(xv,&yv[0],2)  {}
-		Doub rawinterp(Int j, Doub x) {
+		double rawinterp(int j, double x) {
 			if (xx[j]==xx[j+1]) return yy[j];
 			else return yy[j] + ((x-xx[j])/(xx[j+1]-xx[j]))*(yy[j+1]-yy[j]);
 		}
@@ -1638,18 +950,18 @@ namespace InterpolationRoutines
 	
 	struct Poly_interp : Base_interp
 	{
-		Doub dy;
-		Poly_interp(VecDoub_I &xv, VecDoub_I &yv, Int m)
+		double dy;
+		Poly_interp(std::vector<double> &xv, std::vector<double> &yv, int m)
 			: Base_interp(xv,&yv[0],m), dy(0.) {}
-		Doub rawinterp(Int jl, Doub x);
+		double rawinterp(int jl, double x);
 	};
 
-	Doub Poly_interp::rawinterp(Int jl, Doub x)
+	double Poly_interp::rawinterp(int jl, double x)
 	{
-		Int i,m,ns=0;
-		Doub y,den,dif,dift,ho,hp,w;
-		const Doub *xa = &xx[jl], *ya = &yy[jl];
-		VecDoub c(mm),d(mm);
+		int i,m,ns=0;
+		double y,den,dif,dift,ho,hp,w;
+		const double *xa = &xx[jl], *ya = &yy[jl];
+		std::vector<double> c(mm),d(mm);
 		dif=abs(x-xa[0]);
 		for (i=0;i<mm;i++) {
 			if ((dift=abs(x-xa[i])) < dif) {
@@ -1674,315 +986,7 @@ namespace InterpolationRoutines
 		}
 		return y;
 	}
-
-	
-	
-	struct Spline_interp : Base_interp
-	{
-		VecDoub y2;
-		
-		Spline_interp(VecDoub_I &xv, VecDoub_I &yv, Doub yp1=1.e99, Doub ypn=1.e99)
-		: Base_interp(xv,&yv[0],2), y2(xv.size())
-		{sety2(&xv[0],&yv[0],yp1,ypn);}
-
-		Spline_interp(VecDoub_I &xv, const Doub *yv, Doub yp1=1.e99, Doub ypn=1.e99)
-		: Base_interp(xv,yv,2), y2(xv.size())
-		{sety2(&xv[0],yv,yp1,ypn);}
-
-		void sety2(const Doub *xv, const Doub *yv, Doub yp1, Doub ypn);
-		Doub rawinterp(Int jl, Doub xv);
-	};
-	void Spline_interp::sety2(const Doub *xv, const Doub *yv, Doub yp1, Doub ypn)
-	{
-		Int i,k;
-		Doub p,qn,sig,un;
-		VecDoub u(n-1);
-		if (yp1 > 0.99e99)
-			y2[0]=u[0]=0.0;
-		else {
-			y2[0] = -0.5;
-			u[0]=(3.0/(xv[1]-xv[0]))*((yv[1]-yv[0])/(xv[1]-xv[0])-yp1);
-		}
-		for (i=1;i<n-1;i++) {
-			sig=(xv[i]-xv[i-1])/(xv[i+1]-xv[i-1]);
-			p=sig*y2[i-1]+2.0;
-			y2[i]=(sig-1.0)/p;
-			u[i]=(yv[i+1]-yv[i])/(xv[i+1]-xv[i]) - (yv[i]-yv[i-1])/(xv[i]-xv[i-1]);
-			u[i]=(6.0*u[i]/(xv[i+1]-xv[i-1])-sig*u[i-1])/p;
-		}
-		if (ypn > 0.99e99)
-			qn=un=0.0;
-		else {
-			qn=0.5;
-			un=(3.0/(xv[n-1]-xv[n-2]))*(ypn-(yv[n-1]-yv[n-2])/(xv[n-1]-xv[n-2]));
-		}
-		y2[n-1]=(un-qn*u[n-2])/(qn*y2[n-2]+1.0);
-		for (k=n-2;k>=0;k--)
-			y2[k]=y2[k]*y2[k+1]+u[k];
-	}
-	Doub Spline_interp::rawinterp(Int jl, Doub x)
-	{
-		Int klo=jl,khi=jl+1;
-		Doub y,h,b,a;
-		h=xx[khi]-xx[klo];
-		if (h == 0.0) throw("Bad input to routine splint");
-		a=(xx[khi]-x)/h;
-		b=(x-xx[klo])/h;
-		y=a*yy[klo]+b*yy[khi]+((a*a*a-a)*y2[klo]
-			+(b*b*b-b)*y2[khi])*(h*h)/6.0;
-		return y;
-	}
-	
-	
-	
-	struct Spline2D_interp {
-		Int m,n;
-		const MatDoub &y;
-		const VecDoub &x1;
-		VecDoub yv;
-		NRvector<Spline_interp*> srp;
-
-		Spline2D_interp(VecDoub_I &x1v, VecDoub_I &x2v, MatDoub_I &ym)
-			: m(x1v.size()), n(x2v.size()), y(ym), yv(m), x1(x1v), srp(m) {
-			for (Int i=0;i<m;i++) srp[i] = new Spline_interp(x2v,&y[i][0]);
-		}
-
-		~Spline2D_interp(){
-			for (Int i=0;i<m;i++) delete srp[i];
-		}
-
-		Doub interp(Doub x1p, Doub x2p) {
-			for (Int i=0;i<m;i++) yv[i] = (*srp[i]).interp(x2p);
-			Spline_interp scol(x1,yv);
-			return scol.interp(x1p);
-		}
-	};
 }
-
-
-namespace RadialBasisFunctions
-{
-	// Radial Basis Functions -------------------------------
-	
-	// Virtual Base Class
-	struct RBF_fn
-	{
-		// Abstract base class template for any particular radial basis function See specific examples below.
-		virtual double rbf(double r) = 0;
-	};
-	
-	// Interpolation routine
-	struct RBF_interp
-	{
-		
-		// Object for radial basis function interpolation using n points in dim dimensions.
-		// Call constructor once, than interp as many times as desired.
-		
-		int dim, n;
-		const MatDoub &pts; // !!! For now this uses MatDoub from nr3.h
-		const VecDoub &vals; //const std::vector<double> &vals;
-		VecDoub w; //std::vector<double> w;
-		RBF_fn &fn;
-		Bool norm;
-		
-		RBF_interp(MatDoub_I &ptss, VecDoub_I &valss, RBF_fn &func, Bool nrbf=false) : dim(ptss.ncols()), n(ptss.nrows()), pts(ptss), vals(valss), w(n), fn(func), norm(nrbf)
-		{
-			// Constructor. The n X dim matrix ptss inputs the data points, the vector valss the function values.
-			// func contains the chosen radial basis function, derived from the class RBF_fn.
-			// The default value of nrbf gives RBF interpolation; set it to 1 for NRBF.
-			int i,  j;
-			double sum;
-			MatDoub rbf(n, n);
-			VecDoub rhs(n); //std::vector<double> rhs(n);
-			
-			for (i=0; i<n; i++)                                      // Fill the matrix phi(|ri - rj|) and the rhs vector
-			{
-			sum = 0.0;
-			
-			for (j = 0; j<n; j++)
-			{
-				sum += (rbf[i][j] = fn.rbf(rad(&pts[i][0],  &pts[j][0]) ) );
-			}
-			
-			if (norm) rhs[i] = sum*vals[i];
-			else rhs[i] = vals[i];
-			}
-			
-			MyUtilities::LUdcmp lu(rbf);                            // Solve the set of linear equations
-			lu.solve(rhs,  w);
-		
-		}
-		
-		double interp(VecDoub_I &pt)
-		{
-			//  Return the interpolated function value at a dim-dimensional point pt.
-			
-			double fval,  sum = 0.0,  sumw = 0;
-			
-			if (pt.size() !=  dim) throw("RBF_interp bad pt size");
-			
-			for ( int i = 0; i<n; i++)
-			{
-			fval = fn.rbf(rad(&pt[0],  &pts[i][0]) );
-			sumw += w[i] *fval;
-			sum += fval;
-			}
-			
-			return norm  ?  sumw/sum : sumw;
-		}
-		
-		
-		double rad(const double *p1,  const double *p2)
-		{
-			// Euclidean distance
-			
-			double sum = 0.0;
-			
-			for (int i = 0; i<dim; i++) sum += (p1[i] - p2[i]) * (p1[i] - p2[i]);
-			return sqrt(sum);
-		}
-		
-	};
-	
-	
-	struct RBF_multiquadratic :  RBF_fn
-	{
-		// Instantiate this and send to RBF_interp to get multiquadratic interpolation
-		
-		double r02;
-		
-		RBF_multiquadratic(double scale = 1.0) : r02(scale*scale) {}
-		
-		// Constructor argument is the scale factor. See text.
-		double rbf(double r) { return sqrt( (r*r) + r02 );}
-	};
-	
-	
-	struct RBF_thinplate :  RBF_fn
-	{
-		// Same as above,  but for thin-plate spline.
-		
-		double r0;
-		
-		RBF_thinplate(double scale = 1.0) : r0(scale) {}
-		
-		double rbf(double r) { return r <= 0.0  ?  0.0 : ( (r*r) * log(r/r0) ); }
-	};
-	
-	
-	struct RBF_gauss :  RBF_fn
-	{
-		//  Same as above,  but for Gaussian
-		
-		double r0;
-		
-		RBF_gauss(double scale = 1.0) : r0(scale) {}
-		
-		double rbf(double r) { return exp( -0.5*(r/r0)*(r/r0) ); }
-	};
-	
-	
-	struct RBF_inversemultiquadratic :  RBF_fn
-	{
-		//  Same as above,  but for inverse multiquadratic
-		
-		double r02;
-		
-		RBF_inversemultiquadratic(double scale = 1.0) : r02(scale*scale) {}
-		
-		double rbf(double r) { return 1.0/sqrt( (r*r) + r02 ); }
-	};
-	
-	
-	
-	/**
-	 * Function to retrieve the pre-determined r0 values needed
-	 * for the RBF routines.
-	 * 
-	 * The returned values should have come from a bootstrapping
-	 * process to determine the optimum r0 value (highest
-	 * accuracy interpolation).
-	 * 
-	 * When using the sister file to the original PerpleX
-	 * data file, these r0 values should be in the same row
-	 * order as the original Perplex data file.
-	 * !!! ADD COLUMN CHECK !!!
-	 */
-  	//template <int querydim, int datadim>
-	std::vector<std::vector <double> >
-	load_r0_data (std::string filein) { //(const MPI_Comm &comm) {
-		
-		
-		std::vector<std::vector <double> > data;
-				
-		std::string temp;
-		// Read data from disk and distribute among processes
-		std::ifstream in;//(Utilities::read_and_distribute_file_content(filename,comm));
-		in.open(filein);
-		
-		
-			
-		// Skip header line
-		std::getline(in,temp); // throw these lines away
-		
-		
-		while (getline(in,temp)) //(in.good() && !in.eof())   // ????
-		{
-			std::istringstream line(temp);
-			
-			// read the two components of the coordinates
-			double P_in, T_in;
-			line >> P_in >> T_in;
-			
-			std::vector<double> values;
-			for (unsigned int i=0; i<12; ++i) // !!! NEED TO CHANGE THIS TO FIND END OF LINE INSTEAD OF HARD-CODED NUMBER OF COLUMNS !!!
-			{
-				double value;
-				line >> value;
-
-				values.emplace_back(value);
-			}
-			data.emplace_back (values);
-		}
-		
-		in.close();
-		
-		return data;
-	}
-	
-	
-	
-	struct Shep_interp {
-		Int dim, n;
-		const MatDoub &pts;
-		const VecDoub &vals;
-		Doub pneg;
-
-		Shep_interp(MatDoub_I &ptss, VecDoub_I &valss, Doub p=2.)
-		: dim(ptss.ncols()), n(ptss.nrows()) , pts(ptss),
-		vals(valss), pneg(-p) {}
-
-		Doub interp(VecDoub_I &pt) {
-			Doub r, w, sum=0., sumw=0.;
-			if (pt.size() != dim) throw("RBF_interp bad pt size");
-			for (Int i=0;i<n;i++) {
-				if ((r=rad(&pt[0],&pts[i][0])) == 0.) return vals[i];
-				sum += (w = pow(r,pneg));
-				sumw += w*vals[i];
-			}
-			return sumw/sum;
-		}
-
-		Doub rad(const Doub *p1, const Doub *p2) {
-			Doub sum = 0.;
-			for (Int i=0;i<dim;i++) sum += SQR(p1[i]-p2[i]);
-			return sqrt(sum);
-		}
-	};
-  
-}
-
-
 
 namespace IntegrationRoutines
 {
@@ -2008,7 +1012,7 @@ namespace IntegrationRoutines
 		// not by the user.
 		Base_interp (const std::vector <double> &x, const double *y, int m) : n(x.size()), mm(m), jsav(0), cor(0), xx(&x[0]), yy(y)
 		{
-			dj = MyUtilities::MAX(1, (int)pow((double)n, 0.25 ) );
+			dj = std::max(1, (int)pow((double)n, 0.25 ) );
 		}
 		
 		// Given a value x, return an interpolated value, using data pointed
