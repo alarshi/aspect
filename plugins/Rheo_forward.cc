@@ -26,6 +26,8 @@ from ConfigParser import SafeConfigParser
 #include <map>
 #include <random>
 
+#include <gsl/gsl_integration.h>
+
 #include "refvalues_and_utilities.h"
 
 using namespace std;
@@ -304,37 +306,25 @@ double gettauM_P_M13(double T, double P, double Ju);
 /*
  * ------------------------------------------------------------------
  *
- *		MODULES
+ *		Integrations
  *
  *-------------------------------------------------------------------
  */
 
+struct intgrnd_jp_params { double omega; double tauP; double sigma; };
 
-
-double intgrnd_j1b(double tau, double alpha, double omega) //*
+double intgrnd_j1p (double tau, void *parameters)
 {
-        return std::pow(tau,alpha-1.0) / (1.0 + std::pow(omega*tau, 2.0) );
+  struct intgrnd_jp_params *p = (struct intgrnd_jp_params *)parameters;
+  return ( (1.0/tau) * (1.0 / (1.0 + std::pow(p->omega*tau, 2.0) ) ) * exp(-std::pow(log(tau/p->tauP), 2.0) / (2.0*std::pow(p->sigma, 2.0) ) ) );
 }
 
 
 
-double intgrnd_j1p(double tau, double omega, double tauP, double sigma) //*
+double intgrnd_j2p (double tau, void *parameters)
 {
-        return ( (1.0/tau) * (1.0 / (1.0 + std::pow(omega*tau, 2.0) ) ) * exp(-std::pow(log(tau/tauP), 2.0) / (2.0*std::pow(sigma, 2.0) ) ) );
-}
-
-
-
-double intgrnd_j2b(double tau, double alpha, double omega) //*
-{
-        return ( std::pow(tau, alpha) / (1.0 + std::pow(omega*tau, 2.0) ) );
-}
-
-
-
-double intgrnd_j2p(double tau, double omega, double tauP, double sigma) //*
-{
-        return ( (1.0/(1.0 + std::pow(omega*tau, 2.0) ) ) * exp(-std::pow(log(tau/tauP), 2.0) / (2.0*std::pow(sigma, 2.0) ) ) );
+  struct intgrnd_jp_params *p = (struct intgrnd_jp_params *)parameters;
+  return ( (1.0/(1.0 + std::pow(p->omega*tau, 2.0) ) ) * exp(-std::pow(log(tau/p->tauP), 2.0) / (2.0*std::pow(p->sigma, 2.0) ) ) );
 }
 
 
@@ -347,18 +337,22 @@ double intgrnd_j2p(double tau, double omega, double tauP, double sigma) //*
  *-------------------------------------------------------------------
  */
 
-double intgrnd_j1tak(double tau, double omega, double tauM, double Ap, double sigmap) //*
+struct intgrnd_jtak_params {double tau; double omega; double tauM; double Ap; double sigmap;};
+
+double intgrnd_j1tak(double tau, void *parameters) //*
 {
+         struct intgrnd_jtak_params *p = (struct intgrnd_jtak_params *)parameters;
         // Integration part of J1byJu term (eqn 8 in Takei et al 2014)
-        return ( (1.0 / tau)*(1.0 / (1.0 + std::pow(omega*tau, 2.0))) * (0.444*std::pow(tau/tauM, 0.38) + Ap*exp(-0.5*std::pow(((log(tau/tauM) + 8.1)/sigmap), 2.0))) );
+        return ( (1.0 / tau)*(1.0 / (1.0 + std::pow(p->omega*tau, 2.0))) * (0.444*std::pow(tau/p->tauM, 0.38) + p->Ap*exp(-0.5*std::pow(((log(tau/p->tauM) + 8.1)/p->sigmap), 2.0))) );
 }
 
 
 
-double intgrnd_j2tak(double tau, double omega, double tauM, double Ap, double sigmap) //*
+double intgrnd_j2tak(double tau, void *parameters) //*
 {
+        struct intgrnd_jtak_params *p = (struct intgrnd_jtak_params *)parameters;
         // Integration part of J2byJu term (eqn 8 in Takei et al 2014)
-        return ( (omega/(1.0 + std::pow(omega*tau, 2.0) ) ) * (0.444*std::pow(tau/tauM, 0.38) + Ap*exp(-0.5*std::pow(((log(tau/tauM) + 8.1) / sigmap), 2.0) ) ) );
+        return ( (p->omega/(1.0 + std::pow(p->omega*tau, 2.0) ) ) * (0.444*std::pow(tau/p->tauM, 0.38) + p->Ap*exp(-0.5*std::pow(((log(tau/p->tauM) + 8.1) / p->sigmap), 2.0) ) ) );
 }
 
 
@@ -530,10 +524,30 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 		double j1b = (alpha*Delta)/(std::pow(tauH,alpha) - std::pow(tauL,alpha));
 		double j1p = DeltaP/(sigma*sqrt(2*UniversalConst::PI));
 		
-		// !!!!! REPLACE THESE !!!!!
 		double i1b = intgrate_j1b(tauL,tauH,alpha,omega,1000);
-		double i1p = integrate.quad(intgrnd_j1p, 0, np.inf, args=(omega,tauP,sigma))[0];
-		
+                double i1p;
+
+		gsl_integration_cquad_workspace *workspace = gsl_integration_cquad_workspace_alloc(100);
+
+		double abserr;
+		size_t nevals;
+
+		struct intgrnd_jp_params params = {omega,tauP,sigma};
+                gsl_function F;
+		F.function = &intgrnd_j1p;
+		F.params = &params;
+
+		gsl_integration_cquad(&F,
+		                      0,
+		                      std::numeric_limits<double>::infinity(),
+		                      1e-12,
+		                      1e-12,
+		                      workspace,
+		                      &i1p,
+		                      &abserr,
+		                      &nevals);
+
+		gsl_integration_cquad_workspace_free(workspace);
 		
 		J1byJu = 1.0 + (j1b*i1b) + (j1p*i1p);
 	}
@@ -551,9 +565,30 @@ double getJ1byJu(double freq, double P, double T, double gs, std::string model, 
 		
 		omega = 2.0 * UniversalConst::PI * freq;
 		double tauM = gettau(Ju*eta0, m, P, T, gs, model);
-		
-		double i1 = integrate.quad(intgrnd_j1tak, 0.0, np.inf, args=(omega, tauM, Ap, sigmap))[0];
+		double i1;
 
+                gsl_integration_cquad_workspace *workspace = gsl_integration_cquad_workspace_alloc(100);
+
+                double abserr;
+                size_t nevals;
+
+                struct intgrnd_jtak_params params = {omega, tauM, Ap, sigmap};
+                gsl_function F;
+                F.function = &intgrnd_j1tak;
+                F.params = &params;
+
+                gsl_integration_cquad(&F,
+                                      0,
+                                      std::numeric_limits<double>::infinity(),
+                                      1e-12,
+                                      1e-12,
+                                      workspace,
+                                      &i1,
+                                      &abserr,
+                                      &nevals);
+
+                gsl_integration_cquad_workspace_free(workspace);
+		
 		J1byJu = 1.0 + i1;
 	}
 	
@@ -612,8 +647,29 @@ double getJ2byJu(double freq, double P, double T, double gs, std::string model, 
 		
 		std::vector<double> tau_arr = MyUtilities::linspace(tauL,tauH,100); //tau_arr=np.MyUtilities::linspace(tauL,tauH,100);
 		double i2b = intgrate_j2b(tauL, tauH, alpha, omega, 1000);
-		// !!!!! NEED TO REPLACE ITEMS HERE !!!!!
-		double i2p = integrate.quad(intgrnd_j2p, 0, np.inf, args=(omega,tauP,sigma))[0];
+                double i2p;
+
+                gsl_integration_cquad_workspace *workspace = gsl_integration_cquad_workspace_alloc(100);
+
+                double abserr;
+                size_t nevals;
+
+                struct intgrnd_jp_params params = {omega,tauP,sigma};
+                gsl_function F;
+                F.function = &intgrnd_j1p;
+                F.params = &params;
+
+                gsl_integration_cquad(&F,
+                                      0,
+                                      std::numeric_limits<double>::infinity(),
+                                      1e-12,
+                                      1e-12,
+                                      workspace,
+                                      &i2p,
+                                      &abserr,
+                                      &nevals);
+
+                gsl_integration_cquad_workspace_free(workspace);
 		
 		J2byJu = (j2b*i2b)+(j2p*i2p)+(1.0/(omega*tauM));
 	}
@@ -633,10 +689,29 @@ double getJ2byJu(double freq, double P, double T, double gs, std::string model, 
 		
 		omega = 2.0 * UniversalConst::PI * freq;
 		tauM = gettau(Ju*eta0, m, P, T, gs, model);
-		
-		// !!!!! NEED TO REPLACE ITEMS HERE !!!!!
-		double i2 = integrate.quad(intgrnd_j2tak, 0, np.inf, args=(omega,tauM,Ap,sigmap))[0];
-		
+                double i2;
+
+                gsl_integration_cquad_workspace *workspace = gsl_integration_cquad_workspace_alloc(100);
+
+                double abserr;
+                size_t nevals;
+
+                struct intgrnd_jtak_params params = {omega, tauM, Ap, sigmap};
+                gsl_function F;
+                F.function = &intgrnd_j2tak;
+                F.params = &params;
+
+                gsl_integration_cquad(&F,
+                                      0,
+                                      std::numeric_limits<double>::infinity(),
+                                      1e-12,
+                                      1e-12,
+                                      workspace,
+                                      &i2,
+                                      &abserr,
+                                      &nevals);
+
+                gsl_integration_cquad_workspace_free(workspace);
 		
 		J2byJu = i2 + (1.0 / (omega*tauM) );
 	}
