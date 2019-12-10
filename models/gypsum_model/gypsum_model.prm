@@ -1,4 +1,4 @@
-set Additional shared libraries            = ../plugins/libequilibrium_grain_size.so
+set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so
 
 set Dimension                              = 3
 set Use years in output instead of seconds = true
@@ -37,7 +37,7 @@ subsection Initial composition model
   end
 
   subsection Ascii data model
-    set Data directory = ../input_data/
+    set Data directory = ../../input_data/
     set Data file name = GyPSuM_midrad_lon_lat_density_vp_vs.txt
   end
 end
