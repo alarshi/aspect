@@ -100,8 +100,8 @@ namespace aspect
 		  grain_size = std::max(min_grain_size, grain_size);
 
 		  double diff_viscosity;
-		  double disl_viscosity;
 		  double effective_viscosity = diffusion_viscosity(in.temperature[i], pressure, composition, in.strain_rate[i], in.position[i]);
+		  double disl_viscosity = effective_viscosity;
 
 		  // If we do not have the strain rate, there is no equilibrium grain size
 		  if(second_strain_rate_invariant > 1e-30)
@@ -128,7 +128,7 @@ namespace aspect
 				  const double stress_term = 4.0 * effective_viscosity * second_strain_rate_invariant * dislocation_strain_rate_invariant;
 
 				  old_grain_size = grain_size;
-				  grain_size = std::max(min_grain_size, pow(prefactor/stress_term * exponential,1./(1+grain_growth_exponent[phase_index])));
+				  grain_size = 0.9 * old_grain_size + 0.1 * pow(prefactor/stress_term * exponential,1./(1+grain_growth_exponent[phase_index]));
 
 				  ++j;
 				}
@@ -138,7 +138,7 @@ namespace aspect
         	for (unsigned int c=0; c<composition.size(); ++c)
               {
         		if(c == grain_size_index)
-        	      grain_size_out->prescribed_field_outputs[i][c] = std::min(std::max(min_grain_size,grain_size), min_grain_size * 1.e5);
+        	      grain_size_out->prescribed_field_outputs[i][c] = std::max(min_grain_size, grain_size);
         		else
         		  grain_size_out->prescribed_field_outputs[i][c] = 0.0;
               }
