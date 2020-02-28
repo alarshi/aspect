@@ -651,6 +651,20 @@ namespace aspect
                 seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
                 seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
               }
+
+          // set up variable to interpolate prescribed field outputs onto temperature field
+          PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >();
+
+          if (prescribed_temperature_out != NULL)
+            for (unsigned int i=0; i < in.position.size(); ++i)
+              {
+                const double reference_density = this->get_adiabatic_conditions().density(in.position[i]);
+                const double density_anomaly = (out.densities[i] - reference_density) / reference_density;
+
+                const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
+                const double temperature_anomaly = -density_anomaly / out.thermal_expansion_coefficients[i];
+                prescribed_temperature_out->prescribed_temperature_outputs[i] = reference_temperature + temperature_anomaly;
+              }
         }
     }
 
@@ -1186,6 +1200,13 @@ namespace aspect
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
         	std_cxx14::make_unique<MaterialModel::SeismicAdditionalOutputs<dim>> (n_points));
+        }
+
+      if (out.template get_additional_output<PrescribedTemperatureOutputs<dim> >() == NULL)
+        {
+          const unsigned int n_points = out.viscosities.size();
+          out.additional_outputs.push_back(
+            std_cxx14::make_unique<MaterialModel::PrescribedTemperatureOutputs<dim>> (n_points));
         }
     }
   }
