@@ -53,7 +53,7 @@ subsection Material model
   set Model name = equilibrium grain size
 
   subsection Equilibrium grain size model
-    set Use GyPSuM density                          = false
+    set Use GyPSuM density               = false
 
     set Reference density                = 3400
     set Thermal conductivity             = 0

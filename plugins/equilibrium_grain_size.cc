@@ -656,14 +656,14 @@ namespace aspect
           PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >();
 
           if (prescribed_temperature_out != NULL)
-            for (unsigned int i=0; i < in.position.size(); ++i)
               {
                 const double reference_density = this->get_adiabatic_conditions().density(in.position[i]);
                 const double density_anomaly = (out.densities[i] - reference_density) / reference_density;
 
                 const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
                 const double temperature_anomaly = -density_anomaly / out.thermal_expansion_coefficients[i];
-                prescribed_temperature_out->prescribed_temperature_outputs[i] = reference_temperature + temperature_anomaly;
+                const double new_temperature = std::max(std::min(reference_temperature + temperature_anomaly,1600.), 1600.);
+                prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
               }
         }
     }
@@ -1202,7 +1202,8 @@ namespace aspect
         	std_cxx14::make_unique<MaterialModel::SeismicAdditionalOutputs<dim>> (n_points));
         }
 
-      if (out.template get_additional_output<PrescribedTemperatureOutputs<dim> >() == NULL)
+      if (this->get_parameters().temperature_method == Parameters<dim>::AdvectionFieldMethod::prescribed_field &&
+          out.template get_additional_output<PrescribedTemperatureOutputs<dim> >() == NULL)
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
