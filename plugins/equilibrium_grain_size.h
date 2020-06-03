@@ -157,6 +157,7 @@ namespace aspect
         double              minimum_grain_size;
         std::vector<double> reciprocal_required_strain;
         std::vector<double> recrystallized_grain_size;
+        bool                equilibrate_grain_size;
 
         /**
          * Parameters controlling the dynamic grain recrystallization.

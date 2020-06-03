@@ -110,7 +110,7 @@ namespace aspect
 			  double old_grain_size = 0.0;
 
 			  // because the diffusion viscosity depends on the grain size itself, and we need it to compute the dislocation strain rate,
-			  // we have to iterate in the computation of the eqilibrium grain size
+			  // we have to iterate in the computation of the equilibrium grain size
 			  while ((std::abs((grain_size-old_grain_size) / grain_size) > dislocation_viscosity_iteration_threshold)
 					 && (j < dislocation_viscosity_iteration_number))
 				{
@@ -128,7 +128,9 @@ namespace aspect
 				  const double stress_term = 4.0 * effective_viscosity * second_strain_rate_invariant * dislocation_strain_rate_invariant;
 
 				  old_grain_size = grain_size;
-				  grain_size = 0.9 * old_grain_size + 0.1 * pow(prefactor/stress_term * exponential,1./(1+grain_growth_exponent[phase_index]));
+
+				  if(equilibrate_grain_size)
+				    grain_size = 0.9 * old_grain_size + 0.1 * pow(prefactor/stress_term * exponential,1./(1+grain_growth_exponent[phase_index]));
 
 				  ++j;
 				}
@@ -661,8 +663,12 @@ namespace aspect
                 const double density_anomaly = (out.densities[i] - reference_density) / reference_density;
 
                 const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
-                const double temperature_anomaly = -density_anomaly / out.thermal_expansion_coefficients[i];
-                const double new_temperature = std::max(std::min(reference_temperature + temperature_anomaly,1600.), 1600.);
+
+                // TODO: this causes very big temperature anomalies
+                // I've multiplied it by 0.2 for now, but we need to fix this
+                // We should also add boundary layers
+                const double temperature_anomaly = - 0.2 * density_anomaly / out.thermal_expansion_coefficients[i];
+                const double new_temperature = reference_temperature + temperature_anomaly;
                 prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
               }
         }
@@ -768,9 +774,14 @@ namespace aspect
                              "The grain size $d_{ph}$ to that a phase will be reduced to when crossing a phase transition. "
                              "When set to zero, grain size will not be reduced. "
                              "Units: m.");
+          prm.declare_entry ("Use equilibrium grain size", "true",
+                             Patterns::Bool (),
+                             "A flag indicating whether the computation should use the equilibrium grain size "
+                             "when computing the viscosity (if true), or use a constant grain size instead (if "
+                             "false).");
           prm.declare_entry ("Use paleowattmeter", "true",
                              Patterns::Bool (),
-                             "A flag indicating whether the computation should be use the "
+                             "A flag indicating whether the computation should use the "
                              "paleowattmeter approach of Austin and Evans (2007) for grain size reduction "
                              "in the dislocation creep regime (if true) or the paleopiezometer approach "
                              "from Hall and Parmetier (2003) (if false).");
@@ -1005,6 +1016,7 @@ namespace aspect
           minimum_grain_size                    = prm.get_double("Minimum grain size");
           reciprocal_required_strain            = Utilities::string_to_double
                                                   (Utilities::split_string_list(prm.get ("Reciprocal required strain")));
+          equilibrate_grain_size                = prm.get_bool ("Use equilibrium grain size");
 
           use_paleowattmeter                    = prm.get_bool ("Use paleowattmeter");
           grain_boundary_energy                 = Utilities::string_to_double
@@ -1203,7 +1215,7 @@ namespace aspect
         }
 
       if (this->get_parameters().temperature_method == Parameters<dim>::AdvectionFieldMethod::prescribed_field &&
-          out.template get_additional_output<PrescribedTemperatureOutputs<dim> >() == NULL)
+          out.template get_additional_output<PrescribedTemperatureOutputs<dim> >() == nullptr)
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
