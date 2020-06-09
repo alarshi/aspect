@@ -23,6 +23,7 @@
 #include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/gravity_model/interface.h>
 #include <aspect/utilities.h>
+#include <aspect/initial_temperature/interface.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -660,6 +661,7 @@ namespace aspect
           if (prescribed_temperature_out != NULL)
               {
                 const double reference_density = this->get_adiabatic_conditions().density(in.position[i]);
+
                 const double density_anomaly = (out.densities[i] - reference_density) / reference_density;
 
                 const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
@@ -668,7 +670,10 @@ namespace aspect
                 // I've multiplied it by 0.2 for now, but we need to fix this
                 // We should also add boundary layers
                 const double temperature_anomaly = - 0.2 * density_anomaly / out.thermal_expansion_coefficients[i];
-                const double new_temperature = reference_temperature + temperature_anomaly;
+                // temperature modified by AS
+                const double new_temperature = reference_temperature + temperature_anomaly +
+                		this->get_initial_temperature_manager().initial_temperature(in.position[i]);
+
                 prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
               }
         }
