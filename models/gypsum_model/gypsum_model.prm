@@ -42,7 +42,7 @@ subsection Initial composition model
 
   subsection Ascii data model
     set Data directory = ../../input_data/
-    set Data file name = GyPSuM_midrad_lon_lat_density_vp_vs.txt
+    set Data file name = GyPSum-grain-size-5mm.txt
   end
 end
 
@@ -135,16 +135,28 @@ subsection Boundary temperature model
 end
 
 
-subsection Initial temperature model
-  set List of model names = adiabatic
+#subsection Initial temperature model
+#  set List of model names = adiabatic
+#
+#  subsection Adiabatic
+#    subsection Function
+#      set Function expression = 0;3300;0;0
+#    end
+#  end
+#end
 
-  subsection Adiabatic
-    subsection Function
-      set Function expression = 0;3300;0;0
-    end
+subsection Initial temperature model
+  set Model name = adiabatic boundary
+
+  subsection Adiabatic boundary
+    set Data directory = /home/asaxena/opt/Aspect2.0/aspect/data/initial-temperature/lithosphere-mask/ 
+    set Data file name = LAB_CAM2016.txt
+    set Adiabatic temperature gradient = 0
+    set Isotherm temperature = 300
+    set Surface temperature = -973
+
   end
 end
-
 
 subsection Gravity model
   set Model name = ascii data

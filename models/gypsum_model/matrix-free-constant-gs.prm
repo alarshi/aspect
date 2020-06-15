@@ -2,7 +2,8 @@ include gypsum_model.prm
 
 set Dimension = 3
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so
-set Output directory                       = test
+set Use years in output instead of seconds = true
+set Output directory                       = test_adiabatic_boundary_test
 set Max nonlinear iterations               = 5
 set Nonlinear solver scheme                = iterated Advection and Stokes
 
@@ -39,6 +40,6 @@ end
 
 subsection Postprocess
   subsection Visualization
-    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, dynamic topography, geoid, heat flux map, strain rate, named additional outputs
+    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, dynamic topography, geoid, heat flux map, strain rate, named additional outputs, surface velocity
   end
 end
