@@ -1,4 +1,4 @@
-set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so
+set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so, ../../plugins/libvelocity_residual.so, ../../plugins/libstrain_residual.so
 
 set Dimension                              = 3
 set Use years in output instead of seconds = true
@@ -149,7 +149,7 @@ subsection Initial temperature model
   set Model name = adiabatic boundary
 
   subsection Adiabatic boundary
-    set Data directory = /home/asaxena/opt/Aspect2.0/aspect/data/initial-temperature/lithosphere-mask/ 
+    set Data directory = $ASPECT_SOURCE_DIR/data/initial-temperature/lithosphere-mask/ 
     set Data file name = LAB_CAM2016.txt
     set Adiabatic temperature gradient = 0
     set Isotherm temperature = 300
