@@ -56,7 +56,7 @@ namespace aspect
     	  VelocityResidual ();
 
           void initialize () override;
-//
+
 //          // avoid -Woverloaded-virtual:
           using Utilities::AsciiDataBoundary<dim>::initialize;
 
@@ -76,6 +76,9 @@ namespace aspect
            */
           void
 		  parse_parameters (ParameterHandler &prm) override;
+
+        private:
+          bool use_spherical_unit_vectors;
 
       };
     }

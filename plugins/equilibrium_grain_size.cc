@@ -669,10 +669,20 @@ namespace aspect
                 // TODO: this causes very big temperature anomalies
                 // I've multiplied it by 0.2 for now, but we need to fix this
                 // We should also add boundary layers
-                const double temperature_anomaly = - 0.2 * density_anomaly / out.thermal_expansion_coefficients[i];
+
+                double new_temperature = 0;
+
+                if (this->get_initial_temperature_manager().initial_temperature(in.position[i]) < 1673)
+                  new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
+                else
+                {
+//                  const double temperature_anomaly = - 0.2 * density_anomaly / out.thermal_expansion_coefficients[i];
                 // temperature modified by AS
-                const double new_temperature = reference_temperature + temperature_anomaly +
-                		this->get_initial_temperature_manager().initial_temperature(in.position[i]);
+                  const unsigned int anomal_index = this->introspection().compositional_index_for_name("temp_anomal");
+
+                  const double temperature_anomaly = in.composition[i][anomal_index];
+                  new_temperature = reference_temperature + temperature_anomaly;
+                }
 
                 prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
               }
