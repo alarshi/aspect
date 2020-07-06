@@ -31,9 +31,9 @@ end
 
 
 subsection Compositional fields
-  set Number of fields = 4
-  set Names of fields = grain_size, gypsum_density, gypsum_vp, gypsum_vs
-  set Compositional field methods = prescribed field, static, static, static
+  set Number of fields = 5
+  set Names of fields = grain_size, gypsum_density, gypsum_vp, gypsum_vs, temp_anomal
+  set Compositional field methods = prescribed field, static, static, static, static
 end
 
 
@@ -42,7 +42,7 @@ subsection Initial composition model
 
   subsection Ascii data model
     set Data directory = ../../input_data/
-    set Data file name = GyPSum-grain-size-5mm.txt
+    set Data file name = GyPSum-grain-size-5mm-tomo.txt
   end
 end
 
@@ -116,7 +116,14 @@ end
 
 
 subsection Boundary velocity model
-   set Tangential velocity boundary indicators = top, bottom
+  set Prescribed velocity boundary indicators = top:gplates
+  set Tangential velocity boundary indicators = bottom
+  subsection GPlates model
+    set Data directory = $ASPECT_SOURCE_DIR/data/boundary-velocity/gplates/
+    set Velocity file name = current_day.gpml
+    set Data file time step = 1e6
+    set Lithosphere thickness = 250000
+  end
 end
 
 
@@ -146,14 +153,15 @@ end
 #end
 
 subsection Initial temperature model
-  set Model name = adiabatic boundary
+  set List of model names = adiabatic boundary
+  set List of model operators = add
 
   subsection Adiabatic boundary
     set Data directory = $ASPECT_SOURCE_DIR/data/initial-temperature/lithosphere-mask/ 
     set Data file name = LAB_CAM2016.txt
     set Adiabatic temperature gradient = 0
-    set Isotherm temperature = 300
-    set Surface temperature = -973
+    set Isotherm temperature = 1673
+    set Surface temperature = 273
 
   end
 end
@@ -164,7 +172,7 @@ end
 
 
 subsection Mesh refinement
-  set Initial global refinement          = 2
+  set Initial global refinement          = 1
   set Initial adaptive refinement        = 0
   set Strategy                           = temperature
   set Time steps between mesh refinement = 0
