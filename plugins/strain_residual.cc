@@ -30,7 +30,7 @@ namespace aspect
       StrainResidual<dim>::
 	  StrainResidual()
         :
-        DataPostprocessorVector<dim> ("strain_residual",
+	  DataPostprocessorScalar<dim> ("strain_residual",
         			update_values | update_gradients)
       {}
 

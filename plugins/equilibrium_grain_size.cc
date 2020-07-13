@@ -672,7 +672,11 @@ namespace aspect
 
                 double new_temperature = 0;
 
-                if (this->get_initial_temperature_manager().initial_temperature(in.position[i]) < 1673)
+                const double lithosphere_depth = 300e3;
+                const double depth = this->get_geometry_model().depth(in.position[i]);
+
+//               if (this->get_initial_temperature_manager().initial_temperature(in.position[i]) < 1673)
+                if (depth < lithosphere_depth)
                   new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
                 else
                 {

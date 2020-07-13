@@ -48,7 +48,7 @@ namespace aspect
        */
       template <int dim>
       class StrainResidual
-        : public DataPostprocessorVector<dim>,
+        : public DataPostprocessorScalar<dim>,
 		  public Utilities::AsciiDataBoundary<dim>,
           public Interface<dim>
       {
