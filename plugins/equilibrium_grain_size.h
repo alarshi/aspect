@@ -344,6 +344,12 @@ namespace aspect
          */
         bool use_gypsum_density;
 
+        /** 
+         * Approximate lithosphere thickness used to separate the regions of 
+         * temperature derived from seismic tomography and linear temperature
+         * gradient.
+        */
+        double lithosphere_thickness;
 
         /**
          * The format of the provided material files. Currently we support

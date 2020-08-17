@@ -1,9 +1,9 @@
 include gypsum_model.prm
 
 set Dimension = 3
-set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so, ../../plugins/libvelocity_residual.so, ../../plugins/libstrain_residual.so
+set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so #, ../../plugins/libvelocity_residual.so, ../../plugins/libstrain_residual.so
 set Use years in output instead of seconds = true
-set Output directory                       = adiabatic_boundary_nnr_anomal
+set Output directory                       = adiabatic_boundary_itrf_llnl
 set Max nonlinear iterations               = 5
 set Nonlinear solver scheme                = iterated Advection and Stokes
 
@@ -40,11 +40,13 @@ end
 
 subsection Postprocess
   subsection Visualization
-    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, dynamic topography, geoid, heat flux map, strain rate, named additional outputs, velocity residual
-     set Use spherical unit vectors = true
+    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, dynamic topography, geoid, heat flux map, strain rate, named additional outputs, boundary velocity residual
      subsection Surface properties
+      set Use spherical unit vectors = true
+      set Use ascii data = true
       set Data directory = ../../input_data/
-      set Data file name = nnr_interp.txt
+      set Data file name = vel_1deg_ITRF08.gmt_lkp.txt
+#      set Data file name = shell_3d.txt
      end
 
    end

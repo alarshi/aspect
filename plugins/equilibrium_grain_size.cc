@@ -662,8 +662,9 @@ namespace aspect
               {
                 const double reference_density = this->get_adiabatic_conditions().density(in.position[i]);
 
-                const double density_anomaly = (out.densities[i] - reference_density) / reference_density;
-
+                const unsigned int vs_index =  this->introspection().compositional_index_for_name("Vs");
+                
+                // const double density_anomaly = (out.densities[i] - reference_density) / reference_density;
                 const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
 
                 // TODO: this causes very big temperature anomalies
@@ -672,20 +673,26 @@ namespace aspect
 
                 double new_temperature = 0;
 
-                const double lithosphere_depth = 300e3;
                 const double depth = this->get_geometry_model().depth(in.position[i]);
 
-//               if (this->get_initial_temperature_manager().initial_temperature(in.position[i]) < 1673)
-                if (depth < lithosphere_depth)
+                if (depth < lithosphere_thickness)
+                {
                   new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
+                  out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
+                }
+                
                 else
                 {
-//                  const double temperature_anomaly = - 0.2 * density_anomaly / out.thermal_expansion_coefficients[i];
-                // temperature modified by AS
-                  const unsigned int anomal_index = this->introspection().compositional_index_for_name("temp_anomal");
+                   // vs_index + 1: vs_anomaly in m/sec
+                  const double density_anomaly = ( std::log (in.composition[i][vs_index + 1] + in.composition[i][vs_index] ) -
+                                         std::log (in.composition[i][vs_index]) ) * 0.15;
 
-                  const double temperature_anomaly = in.composition[i][anomal_index];
+//                  const double temperature_anomaly = - 0.2 * density_anomaly / out.thermal_expansion_coefficients[i];
+                // temperature modified by AS using the parameters given in the table by Becker, 2006.
+                  const double temperature_anomaly = density_anomaly * -4.2 * 1785;
                   new_temperature = reference_temperature + temperature_anomaly;
+                 
+                  out.densities[i] = reference_density + density_anomaly;
                 }
 
                 prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
@@ -970,6 +977,11 @@ namespace aspect
                              Patterns::Bool (),
                              "A flag indicating whether ASPECT computes the density, or we look for "
                              "a compositional field named 'gypsum_density' and use it as density field.");
+          prm.declare_entry ("Lithosphere thickness", "300e3",
+                            Patterns::Double (),
+                            "Enter the thickeness of the lithosphere, above which linear temperature gradient "
+                            "is used and seismic anomalies. Below this depth, temperature "
+                            "anomalies are computed using seismic tomography.");
         }
         prm.leave_subsection();
       }
@@ -998,6 +1010,7 @@ namespace aspect
           reference_specific_heat    = prm.get_double ("Reference specific heat");
           thermal_alpha              = prm.get_double ("Thermal expansion coefficient");
           reference_compressibility  = prm.get_double ("Reference compressibility");
+          lithosphere_thickness      = prm.get_double ("Lithosphere thickness");
 
 
           transition_depths         = Utilities::string_to_double
