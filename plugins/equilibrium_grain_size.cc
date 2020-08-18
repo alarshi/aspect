@@ -684,15 +684,17 @@ namespace aspect
                 else
                 {
                    // vs_index + 1: vs_anomaly in m/sec
-                  const double density_anomaly = ( std::log (in.composition[i][vs_index + 1] + in.composition[i][vs_index] ) -
-                                         std::log (in.composition[i][vs_index]) ) * 0.15;
+                  const double delta_log_vs = ( std::log (in.composition[i][vs_index + 1] + in.composition[i][vs_index] ) -
+                                         std::log (in.composition[i][vs_index]) );
+
+                  const double density_anomaly = delta_log_vs * 0.15;
 
 //                  const double temperature_anomaly = - 0.2 * density_anomaly / out.thermal_expansion_coefficients[i];
                 // temperature modified by AS using the parameters given in the table by Becker, 2006.
-                  const double temperature_anomaly = density_anomaly * -4.2 * 1785;
+                  const double temperature_anomaly = delta_log_vs * -4.2 * 1785;
                   new_temperature = reference_temperature + temperature_anomaly;
                  
-                  out.densities[i] = reference_density + density_anomaly;
+                  out.densities[i] = reference_density * std::exp (density_anomaly);
                 }
 
                 prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
