@@ -146,6 +146,9 @@ namespace aspect
         		  grain_size_out->prescribed_field_outputs[i][c] = 0.0;
               }
 
+          if (use_depth_dependent_viscosity)
+            effective_viscosity = depth_dependent_rheology->get_viscosity(this->get_geometry_model().depth(in.position[i]));
+
           out.viscosities[i] = std::min(std::max(min_eta,effective_viscosity),max_eta);
 
           if (disl_viscosities_out != NULL)
@@ -984,6 +987,13 @@ namespace aspect
                             "Enter the thickeness of the lithosphere, above which linear temperature gradient "
                             "is used and seismic anomalies. Below this depth, temperature "
                             "anomalies are computed using seismic tomography.");
+          prm.declare_entry ("Use depth dependent viscosity", "false",
+                            Patterns::Bool (),
+                            "This parameter value determines if we want to use the layered depth dependent "
+                            "rheology, which is input as an ascii data file.");
+                            
+          // Depth-dependent viscosity parameters
+          Rheology::AsciiDepthProfile<dim>::declare_parameters(prm);
         }
         prm.leave_subsection();
       }
@@ -1155,6 +1165,16 @@ namespace aspect
           use_table_properties = prm.get_bool ("Use table properties");
           use_enthalpy = prm.get_bool ("Use enthalpy for material properties");
           use_gypsum_density = prm.get_bool ("Use GyPSuM density");
+          use_depth_dependent_viscosity = prm.get_bool ("Use depth dependent viscosity");
+
+          // Parse depth-dependent viscosity parameters
+          if (use_depth_dependent_viscosity)
+            {
+              depth_dependent_rheology = std_cxx14::make_unique<Rheology::AsciiDepthProfile<dim>>();
+              depth_dependent_rheology->initialize_simulator (this->get_simulator());
+              depth_dependent_rheology->parse_parameters(prm);
+              depth_dependent_rheology->initialize();
+            }
 
           // Make sure the grain size field comes after all potential material
           // data fields. Otherwise our material model calculation uses the
