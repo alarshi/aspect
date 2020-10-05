@@ -42,6 +42,7 @@ subsection Initial composition model
 
   subsection Ascii data model
     set Data directory = ../../input_data/
+#    set Data file name = LLNL_velocity_model.txt
     set Data file name = LLNL_velocity_model.txt
   end
 end
@@ -172,10 +173,14 @@ end
 
 
 subsection Mesh refinement
-  set Initial global refinement          = 1
-  set Initial adaptive refinement        = 0
-  set Strategy                           = temperature
+  set Initial global refinement          = 2
+  set Initial adaptive refinement        = 1
   set Time steps between mesh refinement = 0
+  set Strategy                           = boundary
+  subsection Boundary
+    set Boundary refinement indicators = top, bottom
+  end
+
 end
 
 subsection Postprocess
