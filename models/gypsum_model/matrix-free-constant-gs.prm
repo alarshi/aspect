@@ -1,6 +1,7 @@
 include gypsum_model.prm
 
 set Dimension = 3
+set World builder file                     = ../../input_data/geodynamic_world_builder_faults.json
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so #, ../../plugins/libvelocity_residual.so, ../../plugins/libstrain_residual.so
 set Use years in output instead of seconds = true
 set Output directory                       = adiabatic_boundary_itrf_llnl_stein_visc

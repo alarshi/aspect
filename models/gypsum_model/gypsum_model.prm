@@ -31,19 +31,19 @@ end
 
 
 subsection Compositional fields
-  set Number of fields = 4
-  set Names of fields = grain_size, Vp, Vs, vs_anomaly
-  set Compositional field methods = prescribed field, static, static, static
+  set Number of fields = 5
+  set Names of fields = grain_size, Vp, Vs, vs_anomaly, fault
+  set Compositional field methods = prescribed field, static, static, static, static
 end
 
 
 subsection Initial composition model
-  set List of model names = ascii data
+  set List of model names = ascii data, world builder
 
   subsection Ascii data model
     set Data directory = ../../input_data/
+    set Data file name = LLNL_velocity_model_wb.txt
 #    set Data file name = LLNL_velocity_model.txt
-    set Data file name = LLNL_velocity_model.txt
   end
 end
 
@@ -173,7 +173,7 @@ end
 
 
 subsection Mesh refinement
-  set Initial global refinement          = 2
+  set Initial global refinement          = 1
   set Initial adaptive refinement        = 1
   set Time steps between mesh refinement = 0
   set Strategy                           = boundary
