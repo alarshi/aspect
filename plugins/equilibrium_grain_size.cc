@@ -147,7 +147,7 @@ namespace aspect
               }
 
           if (use_depth_dependent_viscosity)
-            effective_viscosity = depth_dependent_rheology->get_viscosity(this->get_geometry_model().depth(in.position[i]));
+            effective_viscosity = depth_dependent_rheology->compute_viscosity(this->get_geometry_model().depth(in.position[i]));
 
           out.viscosities[i] = std::min(std::max(min_eta,effective_viscosity),max_eta);
 
@@ -687,8 +687,7 @@ namespace aspect
                 else
                 {
                    // vs_index + 1: vs_anomaly in m/sec
-                  const double delta_log_vs = ( std::log (in.composition[i][vs_index + 1] + in.composition[i][vs_index] ) -
-                                         std::log (in.composition[i][vs_index]) );
+                  const double delta_log_vs = in.composition[i][vs_index + 1];
 
                   const double density_anomaly = delta_log_vs * 0.15;
 
