@@ -352,6 +352,12 @@ namespace aspect
         */
         bool use_depth_dependent_viscosity;
 
+        /**
+         * Parameter that determines if faults or plate boundaries are used as another
+         * compositional field. 
+         */
+        bool use_faults;
+
         /** 
          * Approximate lithosphere thickness used to separate the regions of 
          * temperature derived from seismic tomography and linear temperature

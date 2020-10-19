@@ -149,6 +149,13 @@ namespace aspect
           if (use_depth_dependent_viscosity)
             effective_viscosity = depth_dependent_rheology->compute_viscosity(this->get_geometry_model().depth(in.position[i]));
 
+          if (use_faults)
+          {
+            unsigned int fault_index = this->introspection().compositional_index_for_name("faults");
+            if (in.composition[i][fault_index] > 0.5)
+              effective_viscosity = effective_viscosity/(100);
+          }
+          
           out.viscosities[i] = std::min(std::max(min_eta,effective_viscosity),max_eta);
 
           if (disl_viscosities_out != NULL)
@@ -633,13 +640,22 @@ namespace aspect
             disl_viscosities_out->boundary_area_change_work_fractions[i] =
               boundary_area_change_work_fraction[get_phase_index(in.position[i],in.temperature[i],pressure)];
 
-          if (use_gypsum_density)
-            {
-              const unsigned int density_index = this->introspection().compositional_index_for_name("gypsum_density");
-              out.densities[i] = in.composition[i][density_index];
-            }
-          else
-            out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
+          const double reference_density = this->get_adiabatic_conditions().density(in.position[i]);
+
+          const unsigned int vs_index =  this->introspection().compositional_index_for_name("Vs");
+          // vs_index + 1: vs_anomaly in m/sec
+          const double delta_log_vs = in.composition[i][vs_index + 1];
+
+          const double density_anomaly = delta_log_vs * 0.15;
+          out.densities[i] = reference_density * (1 + density_anomaly);
+
+          // if (use_gypsum_density)
+          //   {
+          //     const unsigned int density_index = this->introspection().compositional_index_for_name("gypsum_density");
+          //     out.densities[i] = in.composition[i][density_index];
+          //   }
+          // else
+          //   out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
 
 
           out.thermal_conductivities[i] = k_value;
@@ -662,12 +678,7 @@ namespace aspect
           PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >();
 
           if (prescribed_temperature_out != NULL)
-              {
-                const double reference_density = this->get_adiabatic_conditions().density(in.position[i]);
-
-                const unsigned int vs_index =  this->introspection().compositional_index_for_name("Vs");
-                
-                // const double density_anomaly = (out.densities[i] - reference_density) / reference_density;
+              {             
                 const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
 
                 // TODO: this causes very big temperature anomalies
@@ -681,22 +692,13 @@ namespace aspect
                 if (depth < lithosphere_thickness)
                 {
                   new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
-                  out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
+                  out.densities[i] = reference_density; //density(in.temperature[i], pressure, in.composition[i], in.position[i]);
                 }
-                
                 else
-                {
-                   // vs_index + 1: vs_anomaly in m/sec
-                  const double delta_log_vs = in.composition[i][vs_index + 1];
-
-                  const double density_anomaly = delta_log_vs * 0.15;
-
-//                  const double temperature_anomaly = - 0.2 * density_anomaly / out.thermal_expansion_coefficients[i];
+                {               
                 // temperature modified by AS using the parameters given in the table by Becker, 2006.
                   const double temperature_anomaly = delta_log_vs * -4.2 * 1785;
-                  new_temperature = reference_temperature + temperature_anomaly;
-                 
-                  out.densities[i] = reference_density * std::exp (density_anomaly);
+                  new_temperature = reference_temperature + temperature_anomaly;              
                 }
 
                 prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
@@ -990,6 +992,10 @@ namespace aspect
                             Patterns::Bool (),
                             "This parameter value determines if we want to use the layered depth dependent "
                             "rheology, which is input as an ascii data file.");
+          prm.declare_entry ("Use faults", "false",
+                            Patterns::Bool (),
+                            "This parameter value determines if we want to use the faults/plate boundaries as "
+                             "a composition field, currently input as a world builder file.");
                             
           // Depth-dependent viscosity parameters
           Rheology::AsciiDepthProfile<dim>::declare_parameters(prm);
@@ -1165,6 +1171,7 @@ namespace aspect
           use_enthalpy = prm.get_bool ("Use enthalpy for material properties");
           use_gypsum_density = prm.get_bool ("Use GyPSuM density");
           use_depth_dependent_viscosity = prm.get_bool ("Use depth dependent viscosity");
+          use_faults = prm.get_bool ("Use faults");
 
           // Parse depth-dependent viscosity parameters
           if (use_depth_dependent_viscosity)
