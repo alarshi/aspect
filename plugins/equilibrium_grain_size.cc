@@ -24,6 +24,7 @@
 #include <aspect/gravity_model/interface.h>
 #include <aspect/utilities.h>
 #include <aspect/initial_temperature/interface.h>
+#include <aspect/initial_temperature/adiabatic_boundary.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -649,14 +650,11 @@ namespace aspect
           const double density_anomaly = delta_log_vs * 0.15;
           out.densities[i] = reference_density * (1 + density_anomaly);
 
-          // if (use_gypsum_density)
-          //   {
-          //     const unsigned int density_index = this->introspection().compositional_index_for_name("gypsum_density");
-          //     out.densities[i] = in.composition[i][density_index];
-          //   }
-          // else
-          //   out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
-
+          if (use_gypsum_density)
+            {
+              const unsigned int density_index = this->introspection().compositional_index_for_name("gypsum_density");
+              out.densities[i] = in.composition[i][density_index];
+            }
 
           out.thermal_conductivities[i] = k_value;
           out.compressibilities[i] = compressibility(in.temperature[i], pressure, in.composition[i], in.position[i]);
@@ -677,6 +675,10 @@ namespace aspect
           // set up variable to interpolate prescribed field outputs onto temperature field
           PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >();
 
+          // Get variable lithosphere depths, if using an adiabatic boundary ascii file
+          const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary = 
+            this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
+
           if (prescribed_temperature_out != NULL)
               {             
                 const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
@@ -686,6 +688,7 @@ namespace aspect
                 // We should also add boundary layers
 
                 double new_temperature = 0;
+                double lithosphere_thickness = adiabatic_boundary.get_isotherm_depth(in.position[i]);
 
                 const double depth = this->get_geometry_model().depth(in.position[i]);
 
@@ -983,11 +986,6 @@ namespace aspect
                              Patterns::Bool (),
                              "A flag indicating whether ASPECT computes the density, or we look for "
                              "a compositional field named 'gypsum_density' and use it as density field.");
-          prm.declare_entry ("Lithosphere thickness", "300e3",
-                            Patterns::Double (),
-                            "Enter the thickeness of the lithosphere, above which linear temperature gradient "
-                            "is used and seismic anomalies. Below this depth, temperature "
-                            "anomalies are computed using seismic tomography.");
           prm.declare_entry ("Use depth dependent viscosity", "false",
                             Patterns::Bool (),
                             "This parameter value determines if we want to use the layered depth dependent "
@@ -1027,7 +1025,6 @@ namespace aspect
           reference_specific_heat    = prm.get_double ("Reference specific heat");
           thermal_alpha              = prm.get_double ("Thermal expansion coefficient");
           reference_compressibility  = prm.get_double ("Reference compressibility");
-          lithosphere_thickness      = prm.get_double ("Lithosphere thickness");
 
 
           transition_depths         = Utilities::string_to_double
