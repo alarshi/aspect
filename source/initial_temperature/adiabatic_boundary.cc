@@ -50,11 +50,17 @@ namespace aspect
 
     template <int dim>
     double
+    AdiabaticBoundary<dim>::get_isotherm_depth (const Point<dim> &position) const
+    {
+      return Utilities::AsciiDataBoundary<dim>::get_data_component(surface_boundary_id, position, 0);
+    }
+
+    template <int dim>
+    double
     AdiabaticBoundary<dim>::initial_temperature (const Point<dim> &position) const
     {
       const double depth = this->get_geometry_model().depth(position);
-      const double isotherm_depth              =
-        Utilities::AsciiDataBoundary<dim>::get_data_component(surface_boundary_id, position, 0);
+      const double isotherm_depth              = get_isotherm_depth (position);
       if (depth > isotherm_depth)
         return isotherm_temperature + (depth - isotherm_depth) * temperature_gradient;
       else

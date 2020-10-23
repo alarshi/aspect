@@ -61,6 +61,11 @@ namespace aspect
         using Utilities::AsciiDataBoundary<dim>::initialize;
 
         /**
+         * Return the isotherm depths as a function of position.
+         */
+        double get_isotherm_depth (const Point<dim> &position) const;
+
+        /**
          * Return the initial temperature as a function of position.
          */
         double initial_temperature (const Point<dim> &position) const override;
