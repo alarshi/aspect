@@ -679,6 +679,8 @@ namespace aspect
           const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary = 
             this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
 
+          unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
+
           if (prescribed_temperature_out != NULL)
               {             
                 const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
@@ -688,7 +690,7 @@ namespace aspect
                 // We should also add boundary layers
 
                 double new_temperature = 0;
-                double lithosphere_thickness = adiabatic_boundary.get_isotherm_depth(in.position[i]);
+                double lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
 
                 const double depth = this->get_geometry_model().depth(in.position[i]);
 
