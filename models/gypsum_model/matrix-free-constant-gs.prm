@@ -1,16 +1,16 @@
 include gypsum_model.prm
 
 set Dimension = 3
-set World builder file                     = ../../input_data/geodynamic_world_builder_faults.json
-set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so #, ../../plugins/libvelocity_residual.so, ../../plugins/libstrain_residual.so
+set World builder file                     = ../../input_data/geodynamic_world_builder_faults_100_thick.json
+set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
 set Use years in output instead of seconds = true
-set Output directory                       = adiabatic_boundary_itrf_llnl_stein_visc
-set Max nonlinear iterations               = 100
+set Output directory                       = adiabatic_boundary_itrf_llnl_stein_faults_smooth_visc
+set Max nonlinear iterations               = 25
 set Nonlinear solver scheme                = iterated Advection and Stokes
 
 subsection Solver parameters
   subsection Stokes solver parameters
-    set Linear solver tolerance = 1e-5
+    set Linear solver tolerance = 1e-4
 #    set Stokes solver type = block GMG
 #    set Number of cheap Stokes solver steps             = 2000
 #    set Maximum number of expensive Stokes solver steps = 1
@@ -38,10 +38,11 @@ subsection Material model
     set Dislocation creep prefactor                 = 8.33E-015,2.05e-12,2.05e-19,1.e-40
     
     set Use depth dependent viscosity               = true
+    set Use faults                                  = true
 
     subsection Ascii data model
       set Data directory                            = ../../input_data/
-      set Data file name                            = steinberger_visc.txt #becker_viscosity.txt
+      set Data file name                            = steinberger_visc_filter.txt #becker_viscosity.txt
     end
   end
 end
