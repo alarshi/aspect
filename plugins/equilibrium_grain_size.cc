@@ -38,10 +38,72 @@ namespace aspect
 {
   namespace MaterialModel
   {
+    /**
+     * Additional output fields for the viscosity prior to scaling to be added to
+     * the MaterialModel::MaterialModelOutputs structure and filled in the
+     * MaterialModel::Interface::evaluate() function.
+     */
+    template <int dim>
+    class UnscaledViscosityAdditionalOutputs : public NamedAdditionalMaterialOutputs<dim>
+    {
+      public:
+        UnscaledViscosityAdditionalOutputs(const unsigned int n_points)
+          : NamedAdditionalMaterialOutputs<dim>(std::vector<std::string>(1, "unscaled_viscosity"),
+                                                n_points)
+        {}
+    };
+  }
+
+  namespace internal
+  {
+    template <int dim>
+    class FunctorDepthAverageUnscaledViscosity: public internal::FunctorBase<dim>
+    {
+      public:
+        FunctorDepthAverageUnscaledViscosity()
+        {}
+
+        bool need_material_properties() const override
+        {
+          return true;
+        }
+
+        void
+        create_additional_material_model_outputs (const unsigned int n_points,
+                                                  MaterialModel::MaterialModelOutputs<dim> &outputs) const override
+        {
+          if (outputs.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim>>() == nullptr)
+            {
+              outputs.additional_outputs.push_back(
+                std_cxx14::make_unique<MaterialModel::UnscaledViscosityAdditionalOutputs<dim>> (n_points));
+            }
+        }
+
+        void operator()(const MaterialModel::MaterialModelInputs<dim> &,
+                        const MaterialModel::MaterialModelOutputs<dim> &out,
+                        const FEValues<dim> &,
+                        const LinearAlgebra::BlockVector &,
+                        std::vector<double> &output) override
+        {
+          const MaterialModel::UnscaledViscosityAdditionalOutputs<dim> *unscaled_viscosity_outputs
+            = out.template get_additional_output<const MaterialModel::UnscaledViscosityAdditionalOutputs<dim> >();
+
+          Assert(unscaled_viscosity_outputs != nullptr,ExcInternalError());
+
+          for (unsigned int q=0; q<output.size(); ++q)
+            output[q] = unscaled_viscosity_outputs->output_values[0][q];
+        }
+    };
+  }
+
+  namespace MaterialModel
+  {
     template <int dim>
     void
     EquilibriumGrainSize<dim>::initialize()
     {
+      // Get reference viscosity profile from the ascii data
+      reference_viscosity_coordinates = reference_viscosity_profile->get_coordinates();
       n_material_data = material_file_names.size();
       for (unsigned i = 0; i < n_material_data; i++)
         {
@@ -62,13 +124,82 @@ namespace aspect
     }
 
 
+
+    template <int dim>
+    void 
+    EquilibriumGrainSize<dim>::update()
+    {
+      std::vector<std::unique_ptr<internal::FunctorBase<dim> > > lateral_averaging_properties;
+      lateral_averaging_properties.push_back(std::make_unique<internal::FunctorDepthAverageUnscaledViscosity<dim>>());
+
+      std::vector<std::vector<double>> averages =
+                                      this->get_lateral_averaging().compute_lateral_averages(reference_viscosity_coordinates,
+                                          lateral_averaging_properties);
+
+      laterally_averaged_viscosity_profile.swap(averages[0]);
+
+      for (unsigned int i = 0; i < laterally_averaged_viscosity_profile.size(); ++i)
+        AssertThrow(numbers::is_finite(laterally_averaged_viscosity_profile[i]),
+                    ExcMessage("In computing depth averages, there is at"
+                                " least one depth band that does not have"
+                                " any quadrature points in it."
+                                " Consider reducing number of depth layers"
+                                " for averaging."));
+    }
+
+
+    template <int dim>
+    double
+    EquilibriumGrainSize<dim>::compute_viscosity_scaling (const double depth) const
+    {
+      // Make maximal depth slightly larger to ensure depth < maximal_depth
+      const double maximal_depth = this->get_geometry_model().maximal_depth() *
+                                    (1.0+std::numeric_limits<double>::epsilon());
+      Assert(depth < maximal_depth, ExcInternalError());
+
+      unsigned int depth_index;
+      if (depth < reference_viscosity_coordinates.front())
+        {
+          depth_index = 0;
+        }
+      else if (depth > reference_viscosity_coordinates.back())
+        {
+          depth_index = reference_viscosity_coordinates.size() - 1;
+        }
+      else
+        {
+          depth_index = std::distance(reference_viscosity_coordinates.begin(),
+                                      std::lower_bound(reference_viscosity_coordinates.begin(),
+                                                        reference_viscosity_coordinates.end(),
+                                                        depth));
+          if (depth_index > 0)
+            depth_index -= 1;
+        }
+
+      // When evaluating reference viscosity, evaluate at the next lower depth that is stored
+      // in the reference profile instead of the actual depth. This makes the profile piecewise
+      // constant. This will be specific to the viscosity profile used (and ignore the entry with
+      // the largest depth in the profile).
+      const double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
+
+      const double average_viscosity = laterally_averaged_viscosity_profile[depth_index];
+      // std::cout << average_viscosity << " ";
+
+      return reference_viscosity / average_viscosity;
+    }
+
+
+
     template <int dim>
     void
     EquilibriumGrainSize<dim>::compute_equilibrium_grain_size(const typename Interface<dim>::MaterialModelInputs &in,
                                                               typename Interface<dim>::MaterialModelOutputs &out) const
     {
 	  PrescribedFieldOutputs<dim> *grain_size_out = out.template get_additional_output<PrescribedFieldOutputs<dim> >();
-      DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim> >();
+    DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim> >();
+
+    UnscaledViscosityAdditionalOutputs<dim> *unscaled_viscosity_out =
+            out.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim> >();
 
       const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
 
@@ -139,16 +270,13 @@ namespace aspect
 		    }
 
           if (grain_size_out != NULL)
-        	for (unsigned int c=0; c<composition.size(); ++c)
-              {
-        		if(c == grain_size_index)
-        	      grain_size_out->prescribed_field_outputs[i][c] = std::max(min_grain_size, grain_size);
-        		else
-        		  grain_size_out->prescribed_field_outputs[i][c] = 0.0;
-              }
-
-          if (use_depth_dependent_viscosity)
-            effective_viscosity = depth_dependent_rheology->compute_viscosity(this->get_geometry_model().depth(in.position[i]));
+            for (unsigned int c=0; c<composition.size(); ++c)
+            {
+              if(c == grain_size_index)
+                grain_size_out->prescribed_field_outputs[i][c] = std::max(min_grain_size, grain_size);
+              else
+                grain_size_out->prescribed_field_outputs[i][c] = 0.0;
+            }
 
           if (use_faults)
           {
@@ -156,8 +284,17 @@ namespace aspect
             if (in.composition[i][fault_index] > 0.5)
               effective_viscosity = effective_viscosity/(100);
           }
-          
+
           out.viscosities[i] = std::min(std::max(min_eta,effective_viscosity),max_eta);
+
+          if ( (use_depth_dependent_viscosity) && (unscaled_viscosity_out != nullptr) )
+          // store unscaled viscosity to compute averaged profile use for compute scaling factor
+          {
+            unscaled_viscosity_out->output_values[0][i] = out.viscosities[i];
+          }
+          if (this->simulator_is_past_initialization() == true && this->get_timestep_number() > 0)
+            out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
+            // effective_viscosity = reference_viscosity_profile->compute_viscosity(this->get_geometry_model().depth(in.position[i]));
 
           if (disl_viscosities_out != NULL)
             disl_viscosities_out->dislocation_viscosities[i] = std::min(std::max(min_eta,disl_viscosity),1e300);
@@ -1175,10 +1312,10 @@ namespace aspect
           // Parse depth-dependent viscosity parameters
           if (use_depth_dependent_viscosity)
             {
-              depth_dependent_rheology = std_cxx14::make_unique<Rheology::AsciiDepthProfile<dim>>();
-              depth_dependent_rheology->initialize_simulator (this->get_simulator());
-              depth_dependent_rheology->parse_parameters(prm);
-              depth_dependent_rheology->initialize();
+              reference_viscosity_profile = std_cxx14::make_unique<Rheology::AsciiDepthProfile<dim>>();
+              reference_viscosity_profile->initialize_simulator (this->get_simulator());
+              reference_viscosity_profile->parse_parameters(prm);
+              reference_viscosity_profile->initialize();
             }
 
           // Make sure the grain size field comes after all potential material
@@ -1280,6 +1417,14 @@ namespace aspect
           out.additional_outputs.push_back(
             std_cxx14::make_unique<MaterialModel::PrescribedTemperatureOutputs<dim>> (n_points));
         }
+
+      // We need additional field outputs for the unscaled viscosity
+      if (out.template get_additional_output<UnscaledViscosityAdditionalOutputs<dim>>() == nullptr)
+          {
+            const unsigned int n_points = out.viscosities.size();
+            out.additional_outputs.push_back(
+              std_cxx14::make_unique<UnscaledViscosityAdditionalOutputs<dim>> (n_points));
+          }
     }
   }
 }
@@ -1313,5 +1458,19 @@ namespace aspect
                                    "The importance of grain size to mantle dynamics and "
                                    "seismological observations, Geochem. Geophys. Geosyst., "
                                    "18, 3034–3061, doi:10.1002/2017GC006944.")
+  }
+}
+
+// explicit instantiations
+namespace aspect
+{
+  namespace MaterialModel
+  {
+
+#define INSTANTIATE(dim) \
+  template class UnscaledViscosityAdditionalOutputs<dim>;
+
+    ASPECT_INSTANTIATE(INSTANTIATE)
+#undef INSTANTIATE
   }
 }

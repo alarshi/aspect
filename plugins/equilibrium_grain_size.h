@@ -23,6 +23,7 @@
 #define _aspect_model_equilibrium_grain_size_h
 
 #include <aspect/material_model/interface.h>
+#include <aspect/lateral_averaging.h>
 #include <aspect/material_model/grain_size.h>
 #include <aspect/simulator_access.h>
 #include <aspect/material_model/rheology/ascii_depth_profile.h>
@@ -62,11 +63,24 @@ namespace aspect
       public:
         /**
          * Initialization function. Loads the material data and sets up
-         * pointers.
+         * pointers. Get the reference viscosity profile.
          */
         virtual
         void
         initialize ();
+
+        /**
+         * Compute the laterally averaged viscosity
+         */
+        virtual
+        void update();
+
+        /**
+         * Compute the scaling factors for each depth layer such that the laterally
+         * averaged viscosiy in that layer is same as the reference vicosity.
+         */
+        double
+        compute_viscosity_scaling (const double depth) const;
 
         /**
          * Return whether the model is compressible or not.  Incompressibility
@@ -188,7 +202,17 @@ namespace aspect
         std::vector<double> diffusion_activation_volume;
         std::vector<double> diffusion_creep_prefactor;
         std::vector<double> diffusion_creep_grain_size_exponent;
-        std::unique_ptr<Rheology::AsciiDepthProfile<dim> > depth_dependent_rheology;
+        /**
+         * Reference viscosity profile coordinates, and the corresponding viscosity.
+         */
+        std::vector<double> reference_viscosity_coordinates;
+        std::unique_ptr<Rheology::AsciiDepthProfile<dim> > reference_viscosity_profile;
+        /**
+         * A depth-profile of the laterally averaged viscosity in each layer
+         * in the current model. Can be used to compare (and potentially scale)
+         * the computed viscosity to the reference profile.
+         */
+        std::vector<double> laterally_averaged_viscosity_profile;
 
         /**
          * Because of the nonlinear nature of this material model many
