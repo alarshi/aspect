@@ -183,7 +183,6 @@ namespace aspect
       const double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
 
       const double average_viscosity = laterally_averaged_viscosity_profile[depth_index];
-      // std::cout << average_viscosity << " ";
 
       return reference_viscosity / average_viscosity;
     }
