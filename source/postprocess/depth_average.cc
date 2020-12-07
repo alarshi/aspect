@@ -469,6 +469,9 @@ namespace aspect
             if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "viscosity") != output_variables.end() )
               variables.emplace_back("viscosity");
 
+            if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "log viscosity") != output_variables.end() )
+              variables.emplace_back("log_viscosity");
+
             if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "vertical heat flux") != output_variables.end() )
               variables.emplace_back("vertical_heat_flux");
 
