@@ -145,6 +145,7 @@ namespace aspect
                                 " any quadrature points in it."
                                 " Consider reducing number of depth layers"
                                 " for averaging."));
+      initialized = true;
     }
 
 
@@ -172,9 +173,9 @@ namespace aspect
                                       std::lower_bound(reference_viscosity_coordinates.begin(),
                                                         reference_viscosity_coordinates.end(),
                                                         depth));
-          if (depth_index > 0)
-            depth_index -= 1;
         }
+      if (depth_index > 0)
+        depth_index -= 1;
 
       // When evaluating reference viscosity, evaluate at the next lower depth that is stored
       // in the reference profile instead of the actual depth. This makes the profile piecewise
@@ -182,7 +183,7 @@ namespace aspect
       // the largest depth in the profile).
       const double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
 
-      const double average_viscosity = laterally_averaged_viscosity_profile[depth_index];
+      const double average_viscosity = std::pow(10, laterally_averaged_viscosity_profile[depth_index]);
 
       return reference_viscosity / average_viscosity;
     }
@@ -194,7 +195,7 @@ namespace aspect
     EquilibriumGrainSize<dim>::compute_equilibrium_grain_size(const typename Interface<dim>::MaterialModelInputs &in,
                                                               typename Interface<dim>::MaterialModelOutputs &out) const
     {
-	  PrescribedFieldOutputs<dim> *grain_size_out = out.template get_additional_output<PrescribedFieldOutputs<dim> >();
+    PrescribedFieldOutputs<dim> *grain_size_out = out.template get_additional_output<PrescribedFieldOutputs<dim> >();
     DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim> >();
 
     UnscaledViscosityAdditionalOutputs<dim> *unscaled_viscosity_out =
@@ -203,13 +204,13 @@ namespace aspect
       const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
 
       for (unsigned int i=0; i<in.position.size(); ++i)
-        {
-          // Use the adiabatic pressure instead of the real one, because of oscillations
-          const double pressure = (this->get_adiabatic_conditions().is_initialized())
-                                  ?
-                                  this->get_adiabatic_conditions().pressure(in.position[i])
-                                  :
-                                  in.pressure[i];
+      {
+        // Use the adiabatic pressure instead of the real one, because of oscillations
+        const double pressure = (this->get_adiabatic_conditions().is_initialized())
+                                ?
+                                this->get_adiabatic_conditions().pressure(in.position[i])
+                                :
+                                in.pressure[i];
 
 		  // Computed according to equation (7) in Dannberg et al., 2016, using the paleowattmeter grain size.
 		  // Austin and Evans (2007): Paleowattmeters: A scaling relation for dynamically recrystallized grain size. Geology 35, 343-346.
@@ -237,7 +238,7 @@ namespace aspect
 
 		  // If we do not have the strain rate, there is no equilibrium grain size
 		  if(second_strain_rate_invariant > 1e-30)
-		    {
+		  {
 			  unsigned int j = 0;
 			  double old_grain_size = 0.0;
 
@@ -266,37 +267,37 @@ namespace aspect
 
 				  ++j;
 				}
-		    }
+		  }
 
-          if (grain_size_out != NULL)
-            for (unsigned int c=0; c<composition.size(); ++c)
-            {
-              if(c == grain_size_index)
-                grain_size_out->prescribed_field_outputs[i][c] = std::max(min_grain_size, grain_size);
-              else
-                grain_size_out->prescribed_field_outputs[i][c] = 0.0;
-            }
-
-          if (use_faults)
+        if (grain_size_out != NULL)
+          for (unsigned int c=0; c<composition.size(); ++c)
           {
-            unsigned int fault_index = this->introspection().compositional_index_for_name("faults");
-            if (in.composition[i][fault_index] > 0.5)
-              effective_viscosity = effective_viscosity/(100);
+            if(c == grain_size_index)
+              grain_size_out->prescribed_field_outputs[i][c] = std::max(min_grain_size, grain_size);
+            else
+              grain_size_out->prescribed_field_outputs[i][c] = 0.0;
           }
 
-          out.viscosities[i] = std::min(std::max(min_eta,effective_viscosity),max_eta);
+        if (use_faults)
+        {
+          unsigned int fault_index = this->introspection().compositional_index_for_name("faults");
+          if (in.composition[i][fault_index] > 0.5)
+            effective_viscosity = effective_viscosity/(100);
+        }
+        
+        out.viscosities[i] = effective_viscosity;
+        
+        if (disl_viscosities_out != NULL)
+          disl_viscosities_out->dislocation_viscosities[i] = std::min(std::max(min_eta,disl_viscosity),1e30);
 
-          if ( (use_depth_dependent_viscosity) && (unscaled_viscosity_out != nullptr) )
-          // store unscaled viscosity to compute averaged profile use for compute scaling factor
+        if ( (use_depth_dependent_viscosity) && (unscaled_viscosity_out != nullptr) )
+          unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]);
+        
+        if (this->simulator_is_past_initialization() == true && initialized)
           {
-            unscaled_viscosity_out->output_values[0][i] = out.viscosities[i];
-          }
-          if (this->simulator_is_past_initialization() == true && this->get_timestep_number() > 0)
             out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
-            // effective_viscosity = reference_viscosity_profile->compute_viscosity(this->get_geometry_model().depth(in.position[i]));
-
-          if (disl_viscosities_out != NULL)
-            disl_viscosities_out->dislocation_viscosities[i] = std::min(std::max(min_eta,disl_viscosity),1e300);
+            out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
+          }      
         }
 	  return;
     }
@@ -838,7 +839,7 @@ namespace aspect
                 else
                 {               
                 // temperature modified by AS using the parameters given in the table by Becker, 2006.
-                  const double temperature_anomaly = delta_log_vs * -4.2 * 1785;
+                  const double temperature_anomaly = delta_log_vs * -4.2 * 1785 * 0.;
                   new_temperature = reference_temperature + temperature_anomaly;              
                 }
 
@@ -1020,7 +1021,7 @@ namespace aspect
           prm.declare_entry ("Diffusion creep grain size exponent", "3",
                              Patterns::List (Patterns::Double(0)),
                              "The diffusion creep grain size exponent $p_{diff}$ that determines the "
-                             "dependence of vescosity on grain size. "
+                             "dependence of viscosity on grain size. "
                              "Units: none.");
           prm.declare_entry ("Maximum temperature dependence of viscosity", "100",
                              Patterns::Double (0),
@@ -1419,11 +1420,11 @@ namespace aspect
 
       // We need additional field outputs for the unscaled viscosity
       if (out.template get_additional_output<UnscaledViscosityAdditionalOutputs<dim>>() == nullptr)
-          {
-            const unsigned int n_points = out.viscosities.size();
-            out.additional_outputs.push_back(
-              std_cxx14::make_unique<UnscaledViscosityAdditionalOutputs<dim>> (n_points));
-          }
+        {
+          const unsigned int n_points = out.viscosities.size();
+          out.additional_outputs.push_back(
+            std_cxx14::make_unique<UnscaledViscosityAdditionalOutputs<dim>> (n_points));
+        }
     }
   }
 }

@@ -215,6 +215,13 @@ namespace aspect
         std::vector<double> laterally_averaged_viscosity_profile;
 
         /**
+         * Variable returned  to determine if the evaluate () funciton is called and
+         * viscosities are computed. Initially, it is set to false and then updated
+         * to true in the update () funciton.
+         */
+        bool initialized;
+
+        /**
          * Because of the nonlinear nature of this material model many
          * parameters need to be kept within bounds to ensure stability of the
          * solution. These bounds can be adjusted as input parameters.
