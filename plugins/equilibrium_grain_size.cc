@@ -105,6 +105,16 @@ namespace aspect
     {
       // Get reference viscosity profile from the ascii data
       reference_viscosity_coordinates = reference_viscosity_profile->get_coordinates();
+
+      this->get_signals().post_stokes_solver.connect([&](const SimulatorAccess<dim> &,
+                                  const unsigned int ,
+                                  const unsigned int ,
+                                  const SolverControl &,
+                                  const SolverControl &)
+      {
+        this->update();
+      }); 
+
       n_material_data = material_file_names.size();
       for (unsigned i = 0; i < n_material_data; i++)
         {
