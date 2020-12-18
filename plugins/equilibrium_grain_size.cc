@@ -25,6 +25,7 @@
 #include <aspect/utilities.h>
 #include <aspect/initial_temperature/interface.h>
 #include <aspect/initial_temperature/adiabatic_boundary.h>
+#include <aspect/simulator_signals.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -839,7 +840,7 @@ namespace aspect
                 else
                 {               
                 // temperature modified by AS using the parameters given in the table by Becker, 2006.
-                  const double temperature_anomaly = delta_log_vs * -4.2 * 1785 * 0.;
+                  const double temperature_anomaly = delta_log_vs * -4.2 * 1785;
                   new_temperature = reference_temperature + temperature_anomaly;              
                 }
 
