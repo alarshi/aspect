@@ -106,6 +106,10 @@ namespace aspect
       // Get reference viscosity profile from the ascii data
       reference_viscosity_coordinates = reference_viscosity_profile->get_coordinates();
 
+      // Get column index for density scaling
+      rho_vs_depth_profile.initialize(this->get_mpi_communicator());
+      density_scaling_index = rho_vs_depth_profile.get_column_index_from_name("density_scaling");
+
       this->get_signals().post_stokes_solver.connect([&](const SimulatorAccess<dim> &,
                                                          const unsigned int ,
                                                          const unsigned int ,
@@ -795,7 +799,12 @@ namespace aspect
           // vs_index + 1: vs_anomaly in m/sec
           const double delta_log_vs = in.composition[i][vs_index + 1];
 
-          const double density_anomaly = delta_log_vs * 0.15;
+          double density_anomaly = delta_log_vs * 0.15; // Becker (2006) scaling factor 
+
+          const double depth = this->get_geometry_model().depth(in.position[i]);
+          if (use_depth_dependent_rho_vs)
+            density_anomaly = delta_log_vs * rho_vs_depth_profile.get_data_component(Point<1>(depth), density_scaling_index);
+
           out.densities[i] = reference_density * (1 + density_anomaly);
 
           if (use_gypsum_density)
@@ -823,7 +832,7 @@ namespace aspect
           // set up variable to interpolate prescribed field outputs onto temperature field
           PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >();
 
-          // Get variable lithosphere depths, if using an adiabatic boundary ascii file
+          // Get variable lithosphere depths using an adiabatic boundary ascii file
           const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
             this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
 
@@ -838,14 +847,21 @@ namespace aspect
               // We should also add boundary layers
 
               double new_temperature = 0;
+              double uppermost_mantle_thickness = 300e3;
               double lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
 
               const double depth = this->get_geometry_model().depth(in.position[i]);
 
-              if (depth < lithosphere_thickness)
+              if (depth < uppermost_mantle_thickness)
                 {
                   new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
-                  out.densities[i] = reference_density; //density(in.temperature[i], pressure, in.composition[i], in.position[i]);
+                  double deltaT  = new_temperature - 293 ;
+                  if (depth < 40e3) // crustal depths
+                    out.densities[i] = 2.85e3 * ( 1 - 2.7e-5 * deltaT + pressure/6.3e9 );                    
+                  if (depth > 40e3 && depth >= lithosphere_thickness)
+                    out.densities[i] = 3.27e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e9 );
+                  else
+                    out.densities[i] = 3.3e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e9 );
                 }
               else
                 {
@@ -1144,9 +1160,16 @@ namespace aspect
                              Patterns::Bool (),
                              "This parameter value determines if we want to use the faults/plate boundaries as "
                              "a composition field, currently input as a world builder file.");
+          prm.declare_entry ("Use depth dependent density scaling", "false",
+                             Patterns::Bool (),
+                             "This parameter value determines if we want to use depth-dependent scaling files.");
 
           // Depth-dependent viscosity parameters
           Rheology::AsciiDepthProfile<dim>::declare_parameters(prm);
+          
+          // Depth-dependent density scaling parameters
+          Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../input_data/", "depth_rho_vs_tutu.txt", "Density velocity scaling");
+         
         }
         prm.leave_subsection();
       }
@@ -1319,6 +1342,7 @@ namespace aspect
           use_gypsum_density = prm.get_bool ("Use GyPSuM density");
           use_depth_dependent_viscosity = prm.get_bool ("Use depth dependent viscosity");
           use_faults = prm.get_bool ("Use faults");
+          use_depth_dependent_rho_vs = prm.get_bool("Use depth dependent density scaling");
 
           // Parse depth-dependent viscosity parameters
           if (use_depth_dependent_viscosity)
@@ -1327,6 +1351,12 @@ namespace aspect
               reference_viscosity_profile->initialize_simulator (this->get_simulator());
               reference_viscosity_profile->parse_parameters(prm);
               reference_viscosity_profile->initialize();
+            }
+
+          // Parse depth-dependent viscosity parameters
+          if (use_depth_dependent_rho_vs)
+            {
+              rho_vs_depth_profile.parse_parameters(prm, "Density velocity scaling");
             }
 
           // Make sure the grain size field comes after all potential material

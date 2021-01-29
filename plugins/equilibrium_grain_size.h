@@ -207,6 +207,16 @@ namespace aspect
          */
         std::vector<double> reference_viscosity_coordinates;
         std::unique_ptr<Rheology::AsciiDepthProfile<dim> > reference_viscosity_profile;
+
+        /**
+         * A reference profile for density scaling.
+         */
+        Utilities::AsciiDataProfile<dim> rho_vs_depth_profile;
+        /**
+         * The column indices of the density scaling column in the ascii profile file.
+         */
+        unsigned int density_scaling_index;
+
         /**
          * A depth-profile of the laterally averaged viscosity in each layer
          * in the current model. Can be used to compare (and potentially scale)
@@ -384,6 +394,12 @@ namespace aspect
         bool use_depth_dependent_viscosity;
 
         /**
+         * Parameter value that determines whether to read the density scaling with depth
+         * from an ascii data file.
+        */
+        bool use_depth_dependent_rho_vs;
+
+        /**
          * Parameter that determines if faults or plate boundaries are used as another
          * compositional field. 
          */
@@ -395,6 +411,11 @@ namespace aspect
          * gradient.
         */
         double lithosphere_thickness;
+
+        /**
+         * Parameter used to decribe the uppermost mantle based on Tutu (2018). 
+         */
+        double uppermost_mantle_thickness;
 
         /**
          * The format of the provided material files. Currently we support
