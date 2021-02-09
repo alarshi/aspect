@@ -218,6 +218,11 @@ namespace aspect
         unsigned int density_scaling_index;
 
         /**
+         * An object of ascii data boundary to input crustal depths.
+         */
+        Utilities::AsciiDataBoundary<dim> crustal_boundary_depth;
+
+        /**
          * A depth-profile of the laterally averaged viscosity in each layer
          * in the current model. Can be used to compare (and potentially scale)
          * the computed viscosity to the reference profile.
@@ -253,23 +258,23 @@ namespace aspect
                                     const SymmetricTensor<2,dim> &,
                                     const Point<dim> &position) const;
 
-       /**
-        * Compute the equilibrium grain size for a given temperature and
-        * pressure.
-        * This computation is based on the rate of grain size growth
-        * (Ostwald ripening) or reduction(due to dynamic recrystallization
-        * and phase transformations) in dependence on temperature, pressure,
-        * strain rate, mineral phase and creep regime.
-        * We use the grain size growth laws as for example described
-        * in Behn, M. D., Hirth, G., & Elsenbeck, J. R. (2009). Implications
-        * of grain size evolution on the seismic structure of the oceanic
-        * upper mantle. Earth and Planetary Science Letters, 282(1), 178-189.
-        *
-        * For the rate of grain size reduction due to dynamic crystallization
-        * there is the choice between the paleowattmeter (Austins and
-        * Evans, 2007) and the paleopiezometer (Hall and Parmentier, 2003)
-        * as described in the parameter use_paleowattmeter.
-        */
+        /**
+         * Compute the equilibrium grain size for a given temperature and
+         * pressure.
+         * This computation is based on the rate of grain size growth
+         * (Ostwald ripening) or reduction(due to dynamic recrystallization
+         * and phase transformations) in dependence on temperature, pressure,
+         * strain rate, mineral phase and creep regime.
+         * We use the grain size growth laws as for example described
+         * in Behn, M. D., Hirth, G., & Elsenbeck, J. R. (2009). Implications
+         * of grain size evolution on the seismic structure of the oceanic
+         * upper mantle. Earth and Planetary Science Letters, 282(1), 178-189.
+         *
+         * For the rate of grain size reduction due to dynamic crystallization
+         * there is the choice between the paleowattmeter (Austins and
+         * Evans, 2007) and the paleopiezometer (Hall and Parmentier, 2003)
+         * as described in the parameter use_paleowattmeter.
+         */
         void compute_equilibrium_grain_size (const typename Interface<dim>::MaterialModelInputs &in,
                                              typename Interface<dim>::MaterialModelOutputs      &out) const;
 
@@ -401,19 +406,19 @@ namespace aspect
 
         /**
          * Parameter that determines if faults or plate boundaries are used as another
-         * compositional field. 
+         * compositional field.
          */
         bool use_faults;
 
-        /** 
-         * Approximate lithosphere thickness used to separate the regions of 
+        /**
+         * Approximate lithosphere thickness used to separate the regions of
          * temperature derived from seismic tomography and linear temperature
          * gradient.
         */
         double lithosphere_thickness;
 
         /**
-         * Parameter used to decribe the uppermost mantle based on Tutu (2018). 
+         * Parameter used to decribe the uppermost mantle based on Tutu (2018).
          */
         double uppermost_mantle_thickness;
 

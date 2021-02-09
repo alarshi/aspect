@@ -110,6 +110,11 @@ namespace aspect
       rho_vs_depth_profile.initialize(this->get_mpi_communicator());
       density_scaling_index = rho_vs_depth_profile.get_column_index_from_name("density_scaling");
 
+      // Get column for crustal depths
+      std::set<types::boundary_id> surface_boundary_set;
+      surface_boundary_set.insert(1); // outer boundary id
+      crustal_boundary_depth.initialize(surface_boundary_set, 1);
+
       this->get_signals().post_stokes_solver.connect([&](const SimulatorAccess<dim> &,
                                                          const unsigned int ,
                                                          const unsigned int ,
@@ -799,13 +804,7 @@ namespace aspect
           // vs_index + 1: vs_anomaly in m/sec
           const double delta_log_vs = in.composition[i][vs_index + 1];
 
-          double density_anomaly = delta_log_vs * 0.15; // Becker (2006) scaling factor 
-
-          const double depth = this->get_geometry_model().depth(in.position[i]);
-          if (use_depth_dependent_rho_vs)
-            density_anomaly = delta_log_vs * rho_vs_depth_profile.get_data_component(Point<1>(depth), density_scaling_index);
-
-          out.densities[i] = reference_density * (1 + density_anomaly);
+          double density_anomaly = delta_log_vs * 0.15; // Becker (2006) scaling factor
 
           if (use_gypsum_density)
             {
@@ -838,39 +837,54 @@ namespace aspect
 
           unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
 
+          const double depth = this->get_geometry_model().depth(in.position[i]);
+          // The value of uppermost mantle is chosen to difference temperature and density computations, based on Tutu et al.,(2018)
+          double uppermost_mantle_thickness = 300e3;
+          double crustal_thickness = 0.;
+          double lithosphere_thickness = 0.;
+
+          if (this->get_adiabatic_conditions().is_initialized())
+            {
+              lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
+              crustal_thickness = crustal_boundary_depth.get_data_component(surface_boundary_id, in.position[i], 0);
+            }
+
+          double new_temperature = in.temperature[i];
+
           if (prescribed_temperature_out != NULL)
             {
               const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
 
-              // TODO: this causes very big temperature anomalies
-              // I've multiplied it by 0.2 for now, but we need to fix this
-              // We should also add boundary layers
-
-              double new_temperature = 0;
-              double uppermost_mantle_thickness = 300e3;
-              double lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
-
-              const double depth = this->get_geometry_model().depth(in.position[i]);
-
               if (depth < uppermost_mantle_thickness)
-                {
-                  new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
-                  double deltaT  = new_temperature - 293 ;
-                  if (depth < 40e3) // crustal depths
-                    out.densities[i] = 2.85e3 * ( 1 - 2.7e-5 * deltaT + pressure/6.3e9 );                    
-                  if (depth > 40e3 && depth >= lithosphere_thickness)
-                    out.densities[i] = 3.27e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e9 );
-                  else
-                    out.densities[i] = 3.3e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e9 );
-                }
+                new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
               else
                 {
-                  // temperature modified by AS using the parameters given in the table by Becker, 2006.
+                  // temperature modified by AS using the parameters given in the table by Becker, (2006).
                   const double temperature_anomaly = delta_log_vs * -4.2 * 1785;
                   new_temperature = reference_temperature + temperature_anomaly;
                 }
 
               prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
+            }
+
+          // Reference temperature is 20 C in Tutu et al., (2018).
+          double deltaT  = new_temperature - 293 ;
+          // Density computation
+          if (depth <= crustal_thickness)
+            out.densities[i] = 2.85e3 * ( 1 - 2.7e-5 * deltaT + pressure/6.3e9 );
+          else if (depth > crustal_thickness && depth <= lithosphere_thickness)
+            out.densities[i] = 3.27e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e9 );
+          else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
+            out.densities[i] = 3.3e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e9 );
+          else
+            {
+              //Densities below 300 km are computed using the scaling relationship from the velocity anomalies
+              if (use_depth_dependent_rho_vs)
+                density_anomaly = delta_log_vs * rho_vs_depth_profile.get_data_component(Point<1>(depth), density_scaling_index);
+              else
+                // Values from Becker [2006], GJI
+                density_anomaly = delta_log_vs * 0.15;
+              out.densities[i] = reference_density * (1 + density_anomaly);
             }
         }
     }
@@ -1166,10 +1180,12 @@ namespace aspect
 
           // Depth-dependent viscosity parameters
           Rheology::AsciiDepthProfile<dim>::declare_parameters(prm);
-          
+
           // Depth-dependent density scaling parameters
           Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../input_data/", "depth_rho_vs_tutu.txt", "Density velocity scaling");
-         
+
+          // Crustal boundary depths parameters
+          Utilities::AsciiDataBoundary<dim>::declare_parameters(prm,  "../input_data/crust1.0/", "crustal_structure.txt", "Crustal depths");
         }
         prm.leave_subsection();
       }
@@ -1355,9 +1371,10 @@ namespace aspect
 
           // Parse depth-dependent viscosity parameters
           if (use_depth_dependent_rho_vs)
-            {
-              rho_vs_depth_profile.parse_parameters(prm, "Density velocity scaling");
-            }
+            rho_vs_depth_profile.parse_parameters(prm, "Density velocity scaling");
+
+          crustal_boundary_depth.initialize_simulator (this->get_simulator());
+          crustal_boundary_depth.parse_parameters(prm, "Crustal depths");
 
           // Make sure the grain size field comes after all potential material
           // data fields. Otherwise our material model calculation uses the
