@@ -871,11 +871,11 @@ namespace aspect
           double deltaT  = new_temperature - 293 ;
           // Density computation
           if (depth <= crustal_thickness)
-            out.densities[i] = 2.85e3 * ( 1 - 2.7e-5 * deltaT + pressure/6.3e9 );
+            out.densities[i] = 2.85e3 * ( 1 - 2.7e-5 * deltaT + pressure/6.3e10 );
           else if (depth > crustal_thickness && depth <= lithosphere_thickness)
-            out.densities[i] = 3.27e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e9 );
+            out.densities[i] = 3.27e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e10 );
           else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
-            out.densities[i] = 3.3e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e9 );
+            out.densities[i] = 3.3e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e10 );
           else
             {
               //Densities below 300 km are computed using the scaling relationship from the velocity anomalies
