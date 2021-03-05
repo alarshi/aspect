@@ -2,9 +2,9 @@ set Dimension = 3
 set World builder file                     = ../../input_data/geodynamic_world_builder_faults_100_thick.json
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
 set Use years in output instead of seconds = true
-set Output directory                       = adiabatic_boundary_itrf_stein_tutu_scaling_um_densities
-set Max nonlinear iterations               = 1
-set Nonlinear solver scheme                = iterated Advection and Stokes
+set Output directory                       = itrf_stein_tutu_scaling_um_crust1_highres_noStoke
+set Max nonlinear iterations               = 10
+set Nonlinear solver scheme                = no Advection, no Stokes
 set Start time                             = 0
 set End time                               = 0
 set Adiabatic surface temperature          = 1600.0
@@ -14,18 +14,17 @@ subsection Solver parameters
   subsection Stokes solver parameters
    set Linear solver tolerance                         = 1e-4
    set Stokes solver type                              = block GMG
-   set Number of cheap Stokes solver steps             = 2000
-   set Maximum number of expensive Stokes solver steps = 1
+   set Number of cheap Stokes solver steps             = 400
+   set Maximum number of expensive Stokes solver steps = 10
    set GMRES solver restart length                     = 200
-   set Maximum number of expensive Stokes solver steps = 1000
    set Use full A block as preconditioner              = true
   end
 end
 
 
-subsection Checkpointing
-  set Steps between checkpoint = 1
-end 
+#subsection Checkpointing
+#  set Steps between checkpoint = 1
+#end 
 
 
 subsection Adiabatic conditions model
@@ -51,21 +50,21 @@ end
 
 
 subsection Mesh refinement
-#  set Initial adaptive refinement = 2
-  set Initial global refinement = 1
-#  set Minimum refinement level = 3
-#  set Refinement fraction = 0.2
-#  set Coarsening fraction = 0.05
+  set Initial adaptive refinement = 1
+  set Initial global refinement = 4
+  set Minimum refinement level = 3
+  set Refinement fraction = 0.2
+  set Coarsening fraction = 0.05
 #  set Skip setup initial conditions on initial refinement = true
-#  set Skip solvers on initial refinement = true
-#
-#  set Strategy = nonadiabatic temperature, composition, viscosity, minimum refinement function
-#
-#
-#  subsection Minimum refinement function
-#    set Function expression = if (depth > 2500000,5,if(depth > 660000,3,if(depth > 80000,4,5)))
-#    set Variable names = depth,y,z
-#  end
+  set Skip solvers on initial refinement = true
+
+  set Strategy = nonadiabatic temperature, composition, minimum refinement function, viscosity
+
+
+  subsection Minimum refinement function
+    set Function expression = if (depth > 2500000,5,if(depth > 660000,3,if(depth > 80000,4,5)))
+    set Variable names = depth,y,z
+  end
 end
 
 
@@ -112,7 +111,7 @@ subsection Initial temperature model
   set List of model operators = maximum
 
   subsection Ascii data model
-    set Data directory = ../../input_data/TM1_temp_tutu/
+    set Data directory = ../../input_data/
     set Data file name = upper_mantle_TM1.txt
   end
 
@@ -195,7 +194,7 @@ subsection Material model
 
    subsection Ascii data model
      set Data directory                            = ../../input_data/
-     set Data file name                            = stein_smooth.txt  #simple_visc.txt #becker_viscosity.txt  steinberger_visc.txt
+     set Data file name                            = stein_smooth.txt #becker_viscosity.txt #simple_visc.txt #stein_smooth.txt steinberger_visc.txt
    end
 
    subsection Density velocity scaling
@@ -203,15 +202,20 @@ subsection Material model
      set Data file name                            = depth_rho_vs_tutu.txt
    end
 
+   subsection Crustal depths
+     set Data directory                            = ../../input_data/
+     set Data file name                            = crustal_structure.txt
+   end
+
   end
 end
 
 
 subsection Postprocess
-  set List of postprocessors         = boundary velocity residual statistics, velocity statistics, visualization, Stokes residual, heat flux statistics, memory statistics, depth average
+  set List of postprocessors         = boundary velocity residual statistics, velocity statistics, visualization, Stokes residual, heat flux statistics, memory statistics , depth average
   
   subsection Visualization
-    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, heat flux map, strain rate, named additional outputs, boundary velocity residual
+    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, heat flux map, strain rate, named additional outputs, boundary velocity residual, partition
     set Output format  = vtu  
   end
   
@@ -227,6 +231,7 @@ subsection Postprocess
     set Time between graphical output = 0
     set Number of zones = 21
 #    set Depth boundaries of zones = 0, 1e5, 3e5, 4.1e5, 6.6e5, 2.871e6
+#    set Depth boundaries of zones = 0, 2.871e6
     set Depth boundaries of zones = 9.94752e4, 2.1859e5, 3.38342e5, 4.08038e5, 5.17018e5, 6.5641e5, 7.95801e5, 9.3456e5, 1.07395e6, 1.21334e6, 1.35274e6, 1.49149e6, 1.63089e6, 1.770274e6, 1.90967e6, 2.04849e6, 2.18782e6, 2.327213e6, 2.466605e6, 2.60536e6, 2.74475e6, 2.88415e6
   end
 end
