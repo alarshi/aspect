@@ -855,8 +855,15 @@ namespace aspect
             {
               const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
 
-              if (depth < uppermost_mantle_thickness)
+              if (depth < uppermost_mantle_thickness - 5e3)
                 new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
+              else if (depth >= 295e3 || depth < 305e3)
+              {
+                double sigmoid = 1.0 / (1.0 + std::exp( (depth - uppermost_mantle_thickness)/1e3));
+                double temp_0 = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
+                double temp_1 =  delta_log_vs * -4.2 * 1785 + reference_temperature ;
+                new_temperature = temp_0 + (temp_1 - temp_0) * sigmoid;
+              }
               else
                 {
                   // temperature modified by AS using the parameters given in the table by Becker, (2006).
