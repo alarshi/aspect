@@ -1,5 +1,5 @@
 set Dimension = 3
-set World builder file                     = ../../input_data/geodynamic_world_builder_faults_100_thick.json
+set World builder file                     = ../../input_data/geodynamic_world_builder_faults_not_vertical.json
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
 set Use years in output instead of seconds = true
 set Output directory                       = itrf_stein_tutu_scaling_um_crust1_highres_noStoke
@@ -15,7 +15,7 @@ subsection Solver parameters
    set Linear solver tolerance                         = 1e-4
    set Stokes solver type                              = block GMG
    set Number of cheap Stokes solver steps             = 400
-   set Maximum number of expensive Stokes solver steps = 10
+   set Maximum number of expensive Stokes solver steps = 1000
    set GMRES solver restart length                     = 200
    set Use full A block as preconditioner              = true
   end
@@ -50,21 +50,21 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement = 1
-  set Initial global refinement = 4
-  set Minimum refinement level = 3
-  set Refinement fraction = 0.2
-  set Coarsening fraction = 0.05
+  set Initial adaptive refinement = 0
+  set Initial global refinement = 1
+#  set Minimum refinement level = 3
+#  set Refinement fraction = 0.2
+#  set Coarsening fraction = 0.05
 #  set Skip setup initial conditions on initial refinement = true
-  set Skip solvers on initial refinement = true
+#  set Skip solvers on initial refinement = true
 
-  set Strategy = nonadiabatic temperature, composition, minimum refinement function, viscosity
+#  set Strategy = nonadiabatic temperature, composition, minimum refinement function, viscosity
 
 
-  subsection Minimum refinement function
-    set Function expression = if (depth > 2500000,5,if(depth > 660000,3,if(depth > 80000,4,5)))
-    set Variable names = depth,y,z
-  end
+# subsection Minimum refinement function
+#    set Function expression = if (depth > 2500000,5,if(depth > 660000,3,if(depth > 80000,4,5)))
+#    set Variable names = depth,y,z
+#  end
 end
 
 

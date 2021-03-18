@@ -857,7 +857,7 @@ namespace aspect
 
               if (depth < uppermost_mantle_thickness - 5e3)
                 new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
-              else if (depth >= 295e3 || depth < 305e3)
+              else if (depth >= 295e3 && depth < 305e3)
               {
                 double sigmoid = 1.0 / (1.0 + std::exp( (depth - uppermost_mantle_thickness)/1e3));
                 double temp_0 = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
