@@ -2,9 +2,9 @@ set Dimension = 3
 set World builder file                     = ../../input_data/geodynamic_world_builder_faults_not_vertical.json
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
 set Use years in output instead of seconds = true
-set Output directory                       = itrf_stein_tutu_scaling_um_crust1_highres_noStoke
-set Max nonlinear iterations               = 10
-set Nonlinear solver scheme                = no Advection, no Stokes
+set Output directory                       = itrf_becker_tutu_scaling_um_angled-fault-2
+set Max nonlinear iterations               = 1
+set Nonlinear solver scheme                = single Advection, single Stokes 
 set Start time                             = 0
 set End time                               = 0
 set Adiabatic surface temperature          = 1600.0
@@ -14,17 +14,13 @@ subsection Solver parameters
   subsection Stokes solver parameters
    set Linear solver tolerance                         = 1e-4
    set Stokes solver type                              = block GMG
-   set Number of cheap Stokes solver steps             = 400
-   set Maximum number of expensive Stokes solver steps = 1000
+   set Number of cheap Stokes solver steps             = 1000
    set GMRES solver restart length                     = 200
+   set Maximum number of expensive Stokes solver steps = 1000
    set Use full A block as preconditioner              = true
   end
 end
 
-
-#subsection Checkpointing
-#  set Steps between checkpoint = 1
-#end 
 
 
 subsection Adiabatic conditions model
@@ -50,21 +46,26 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement = 0
-  set Initial global refinement = 1
-#  set Minimum refinement level = 3
-#  set Refinement fraction = 0.2
-#  set Coarsening fraction = 0.05
-#  set Skip setup initial conditions on initial refinement = true
-#  set Skip solvers on initial refinement = true
+  set Initial adaptive refinement = 1
+  set Initial global refinement = 3
+  set Minimum refinement level = 3
+  set Refinement fraction = 0.2
+  set Coarsening fraction = 0.05
+  set Skip setup initial conditions on initial refinement = true
+  set Skip solvers on initial refinement = true
 
-#  set Strategy = nonadiabatic temperature, composition, minimum refinement function, viscosity
+#  set Strategy = nonadiabatic temperature, composition, viscosity, minimum refinement function
+  set Strategy = density, minimum refinement function, boundary
+  
+  subsection Boundary
+    set Boundary refinement indicators = top
+  end
 
 
-# subsection Minimum refinement function
-#    set Function expression = if (depth > 2500000,5,if(depth > 660000,3,if(depth > 80000,4,5)))
-#    set Variable names = depth,y,z
-#  end
+  subsection Minimum refinement function
+    set Function expression = if(depth > 660000,3, if(depth > 80000,4,5))
+    set Variable names = depth,y,z
+  end
 end
 
 
@@ -77,7 +78,7 @@ end
 
 
 subsection Initial composition model
-  set List of model names = ascii data, world builder
+  set List of model names = ascii data #, world builder
 
   subsection Ascii data model
     set Data directory = ../../input_data/
@@ -119,8 +120,8 @@ subsection Initial temperature model
     set Data directory = $ASPECT_SOURCE_DIR/data/initial-temperature/lithosphere-mask/
     set Data file name = LAB_CAM2016.txt
     set Adiabatic temperature gradient = 0
-    set Isotherm temperature = 274
-    set Surface temperature = 273
+    set Isotherm temperature = 1600  #274
+    set Surface temperature = 1100 #273
 
   end
 end
@@ -153,15 +154,15 @@ subsection Material model
     set Maximum viscosity                           = 1e24
 
    set Diffusion activation energy                 = 375000,231000,270000,299000
-   set Diffusion activation volume                 = 6e-6,6e-6,6e-6,1.5e-6
+   set Diffusion activation volume                 = 6e-6,6e-6,6e-6,2e-6
    set Diffusion creep exponent                    = 1.0,1.0,1.0,1.0
    set Diffusion creep grain size exponent         = 3,3,3,3
-   set Diffusion creep prefactor                   = 1.25E-015,6.12E-010,2.94E-012,5.4E-017
+   set Diffusion creep prefactor                   = 1.25E-015,6.12E-019,2.94E-017,5.4E-022
 
    set Dislocation activation energy               = 530000,530000,530000,530000
    set Dislocation activation volume               = 1.40E-005,1.70E-005,1.70E-005,0.0
    set Dislocation creep exponent                  = 3.5,3.5,3.5,3.5
-   set Dislocation creep prefactor                 = 8.33E-015,2.05e-12,2.05e-19,1.e-40
+   set Dislocation creep prefactor                 = 1e-100, 1e-100, 1e-100, 1e-100 #8.33E-015,2.05e-12,2.05e-19,1.e-40
 
    set Geometric constant                          = 3,3,3,3
    set Grain growth activation energy              = 400000,662000,414000,299000
@@ -177,14 +178,14 @@ subsection Material model
    set Thermal conductivity                        = 4
    set Thermal expansion coefficient               = 2.0e-5
    set Use paleowattmeter                          = true
-   set Viscosity                                   = 1e25
+   set Viscosity                                   = 1e22
    set Use GyPSuM density                          = false
 
    set Maximum temperature dependence of viscosity = 1e6
-   set Phase transition Clapeyron slopes           = 2.6e6,5.7e6,-1.1e6
-   set Phase transition depths                     = 417000,559000,656000
+   set Phase transition Clapeyron slopes           = 0,0,0
+   set Phase transition depths                     = 410000,520000,660000
    set Phase transition temperatures               = 1950,1950,1950
-   set Phase transition widths                     = 0,0,30000.0
+   set Phase transition widths                     = 0,0,0
    set Reciprocal required strain                  = 10
    set Recrystallized grain size                   = 0.0,0.0,1e-4
    
@@ -194,7 +195,7 @@ subsection Material model
 
    subsection Ascii data model
      set Data directory                            = ../../input_data/
-     set Data file name                            = stein_smooth.txt #becker_viscosity.txt #simple_visc.txt #stein_smooth.txt steinberger_visc.txt
+     set Data file name                            = becker_viscosity_reducedT.txt #stein_smooth.txt  #simple_visc.txt #becker_viscosity.txt  steinberger_visc.txt
    end
 
    subsection Density velocity scaling
@@ -212,10 +213,10 @@ end
 
 
 subsection Postprocess
-  set List of postprocessors         = boundary velocity residual statistics, velocity statistics, visualization, Stokes residual, heat flux statistics, memory statistics , depth average
+  set List of postprocessors         = boundary velocity residual statistics, velocity statistics, visualization, Stokes residual, heat flux statistics, memory statistics, depth average
   
   subsection Visualization
-    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, heat flux map, strain rate, named additional outputs, boundary velocity residual, partition
+    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, heat flux map, strain rate, named additional outputs, boundary velocity residual
     set Output format  = vtu  
   end
   
@@ -227,11 +228,10 @@ subsection Postprocess
   end
  
    subsection Depth average
-    set List of output variables = log viscosity, viscosity
+    set List of output variables = viscosity
     set Time between graphical output = 0
-    set Number of zones = 21
-#    set Depth boundaries of zones = 0, 1e5, 3e5, 4.1e5, 6.6e5, 2.871e6
-#    set Depth boundaries of zones = 0, 2.871e6
-    set Depth boundaries of zones = 9.94752e4, 2.1859e5, 3.38342e5, 4.08038e5, 5.17018e5, 6.5641e5, 7.95801e5, 9.3456e5, 1.07395e6, 1.21334e6, 1.35274e6, 1.49149e6, 1.63089e6, 1.770274e6, 1.90967e6, 2.04849e6, 2.18782e6, 2.327213e6, 2.466605e6, 2.60536e6, 2.74475e6, 2.88415e6
+    set Number of zones = 4
+    set Depth boundaries of zones = 0, 4.1e5, 5.2e5, 6.6e5, 2.871e6
+#    set Depth boundaries of zones = 9.94752e4, 2.1859e5, 3.38342e5, 4.08038e5, 5.17018e5, 6.5641e5, 7.95801e5, 9.3456e5, 1.07395e6, 1.21334e6, 1.35274e6, 1.49149e6, 1.63089e6, 1.770274e6, 1.90967e6, 2.04849e6, 2.18782e6, 2.327213e6, 2.466605e6, 2.60536e6, 2.74475e6, 2.88415e6
   end
 end

@@ -115,10 +115,18 @@ namespace aspect
       surface_boundary_set.insert(1); // outer boundary id
       crustal_boundary_depth.initialize(surface_boundary_set, 1);
 
-      this->get_signals().post_stokes_solver.connect([&](const SimulatorAccess<dim> &,
+//      this->get_signals().post_stokes_solver.connect([&](const SimulatorAccess<dim> &,
+//                                                         const unsigned int ,
+//                                                         const unsigned int ,
+//                                                         const SolverControl &,
+//                                                         const SolverControl &)
+//      {
+//        this->update();
+//      });
+      
+      this->get_signals().post_advection_solver.connect([&](const SimulatorAccess<dim> &,
                                                          const unsigned int ,
                                                          const unsigned int ,
-                                                         const SolverControl &,
                                                          const SolverControl &)
       {
         this->update();
@@ -854,22 +862,15 @@ namespace aspect
           if (prescribed_temperature_out != NULL)
             {
               const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
+              // temperature modified by AS using the parameters given in the table by Becker, (2006).
+              const double mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785;
+              const double temp_0 = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
+              
+              const double sigmoid_width = 2.e4;
+              const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
+              
+              new_temperature = temp_0 + (mantle_temperature - temp_0) * sigmoid;
 
-              if (depth < uppermost_mantle_thickness - 5e3)
-                new_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
-              else if (depth >= 295e3 && depth < 305e3)
-              {
-                double sigmoid = 1.0 / (1.0 + std::exp( (depth - uppermost_mantle_thickness)/1e3));
-                double temp_0 = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
-                double temp_1 =  delta_log_vs * -4.2 * 1785 + reference_temperature ;
-                new_temperature = temp_0 + (temp_1 - temp_0) * sigmoid;
-              }
-              else
-                {
-                  // temperature modified by AS using the parameters given in the table by Becker, (2006).
-                  const double temperature_anomaly = delta_log_vs * -4.2 * 1785;
-                  new_temperature = reference_temperature + temperature_anomaly;
-                }
 
               prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
             }
