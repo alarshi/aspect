@@ -115,14 +115,14 @@ namespace aspect
       surface_boundary_set.insert(1); // outer boundary id
       crustal_boundary_depth.initialize(surface_boundary_set, 1);
 
-//      this->get_signals().post_stokes_solver.connect([&](const SimulatorAccess<dim> &,
-//                                                         const unsigned int ,
-//                                                         const unsigned int ,
-//                                                         const SolverControl &,
-//                                                         const SolverControl &)
-//      {
-//        this->update();
-//      });
+      this->get_signals().post_stokes_solver.connect([&](const SimulatorAccess<dim> &,
+                                                         const unsigned int ,
+                                                         const unsigned int ,
+                                                         const SolverControl &,
+                                                         const SolverControl &)
+      {
+        this->update();
+      });
       
       this->get_signals().post_advection_solver.connect([&](const SimulatorAccess<dim> &,
                                                          const unsigned int ,

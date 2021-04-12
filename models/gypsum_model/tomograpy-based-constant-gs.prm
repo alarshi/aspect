@@ -2,9 +2,9 @@ set Dimension = 3
 set World builder file                     = ../../input_data/geodynamic_world_builder_faults_not_vertical.json
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
 set Use years in output instead of seconds = true
-set Output directory                       = itrf_becker_tutu_scaling_um_angled-fault-2
-set Max nonlinear iterations               = 1
-set Nonlinear solver scheme                = single Advection, single Stokes 
+set Output directory                       = itrf_stein_tutu_scaling_um_angled-fault-2_iter_wb
+set Max nonlinear iterations               = 10
+set Nonlinear solver scheme                = iterated Advection and Stokes 
 set Start time                             = 0
 set End time                               = 0
 set Adiabatic surface temperature          = 1600.0
@@ -40,14 +40,14 @@ subsection Geometry model
 
   subsection Spherical shell
     set Inner radius  = 3481000
-    set Outer radius  = 6336000
+    set Outer radius  = 6371000
   end
 end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement = 1
-  set Initial global refinement = 3
+  set Initial adaptive refinement = 0
+  set Initial global refinement = 5
   set Minimum refinement level = 3
   set Refinement fraction = 0.2
   set Coarsening fraction = 0.05
@@ -78,7 +78,7 @@ end
 
 
 subsection Initial composition model
-  set List of model names = ascii data #, world builder
+  set List of model names = ascii data , world builder
 
   subsection Ascii data model
     set Data directory = ../../input_data/
@@ -120,8 +120,8 @@ subsection Initial temperature model
     set Data directory = $ASPECT_SOURCE_DIR/data/initial-temperature/lithosphere-mask/
     set Data file name = LAB_CAM2016.txt
     set Adiabatic temperature gradient = 0
-    set Isotherm temperature = 1600  #274
-    set Surface temperature = 1100 #273
+    set Isotherm temperature = 274
+    set Surface temperature = 273
 
   end
 end
@@ -162,7 +162,7 @@ subsection Material model
    set Dislocation activation energy               = 530000,530000,530000,530000
    set Dislocation activation volume               = 1.40E-005,1.70E-005,1.70E-005,0.0
    set Dislocation creep exponent                  = 3.5,3.5,3.5,3.5
-   set Dislocation creep prefactor                 = 1e-100, 1e-100, 1e-100, 1e-100 #8.33E-015,2.05e-12,2.05e-19,1.e-40
+   set Dislocation creep prefactor                 = 8.33E-015,2.05e-12,2.05e-19,1.e-40 #1e-100, 1e-100, 1e-100, 1e-100 
 
    set Geometric constant                          = 3,3,3,3
    set Grain growth activation energy              = 400000,662000,414000,299000
@@ -195,7 +195,7 @@ subsection Material model
 
    subsection Ascii data model
      set Data directory                            = ../../input_data/
-     set Data file name                            = becker_viscosity_reducedT.txt #stein_smooth.txt  #simple_visc.txt #becker_viscosity.txt  steinberger_visc.txt
+     set Data file name                            = stein_smooth_phase.txt #becker_viscosity_reducedT.txt #stein_smooth.txt  #simple_visc.txt #becker_viscosity.txt 
    end
 
    subsection Density velocity scaling
@@ -228,10 +228,10 @@ subsection Postprocess
   end
  
    subsection Depth average
-    set List of output variables = viscosity
+    set List of output variables = viscosity, log viscosity
     set Time between graphical output = 0
-    set Number of zones = 4
-    set Depth boundaries of zones = 0, 4.1e5, 5.2e5, 6.6e5, 2.871e6
-#    set Depth boundaries of zones = 9.94752e4, 2.1859e5, 3.38342e5, 4.08038e5, 5.17018e5, 6.5641e5, 7.95801e5, 9.3456e5, 1.07395e6, 1.21334e6, 1.35274e6, 1.49149e6, 1.63089e6, 1.770274e6, 1.90967e6, 2.04849e6, 2.18782e6, 2.327213e6, 2.466605e6, 2.60536e6, 2.74475e6, 2.88415e6
+    set Number of zones = 24
+#    set Depth boundaries of zones = 0, 4.1e5, 5.2e5, 6.6e5, 2.871e6
+    set Depth boundaries of zones = 9.94752e4, 2.1859e5, 3.38342e5, 4.08038e5, 4.1e5, 5.17018e5, 5.2e5, 6.5641e5, 6.6e5, 7.95801e5, 9.3456e5, 1.07395e6, 1.21334e6, 1.35274e6, 1.49149e6, 1.63089e6, 1.770274e6, 1.90967e6, 2.04849e6, 2.18782e6, 2.327213e6, 2.466605e6, 2.60536e6, 2.74475e6, 2.88415e6
   end
 end
