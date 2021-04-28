@@ -306,12 +306,6 @@ namespace aspect
                   grain_size_out->prescribed_field_outputs[i][c] = 0.0;
               }
 
-          if (use_faults)
-            {
-              unsigned int fault_index = this->introspection().compositional_index_for_name("faults");
-              if (in.composition[i][fault_index] > 0.5)
-                effective_viscosity = effective_viscosity/(100);
-            }
 
           out.viscosities[i] = effective_viscosity;
 
@@ -325,6 +319,13 @@ namespace aspect
             {
               out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
               out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
+            }
+          
+	  if (use_faults)
+            {
+              unsigned int fault_index = this->introspection().compositional_index_for_name("faults");
+              if (in.composition[i][fault_index] > 0.5)
+                out.viscosities[i] = 1e21;
             }
         }
       return;
