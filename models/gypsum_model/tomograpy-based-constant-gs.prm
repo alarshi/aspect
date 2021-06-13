@@ -1,8 +1,8 @@
 set Dimension = 3
-set World builder file                     = ../../input_data/geodynamic_world_builder_gem_all_faults.json
+set World builder file                     = ../../input_data/geodynamic_world_builder_gem_all_faults-1.json
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
 set Use years in output instead of seconds = true
-set Output directory                       = itrf_stein_tutu_scaling_um_angled-fault-asth_5-3
+set Output directory                       = itrf_stein_tutu_scaling_um_angled-fault-asth_5-1
 set Max nonlinear iterations               = 10
 set Nonlinear solver scheme                = iterated Advection and Stokes 
 set Start time                             = 0
@@ -14,9 +14,9 @@ subsection Solver parameters
   subsection Stokes solver parameters
    set Linear solver tolerance                         = 1e-4
    set Stokes solver type                              = block GMG
-   set Number of cheap Stokes solver steps             = 1000
+   set Number of cheap Stokes solver steps             = 2000
    set GMRES solver restart length                     = 200
-   set Maximum number of expensive Stokes solver steps = 1000
+   set Maximum number of expensive Stokes solver steps = 2000
    set Use full A block as preconditioner              = true
   end
 end
@@ -46,7 +46,7 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement = 3
+  set Initial adaptive refinement = 1
   set Initial global refinement = 5
   set Minimum refinement level = 4
   set Refinement fraction = 0.4
@@ -94,7 +94,7 @@ end
 
 
 subsection Nullspace removal
-  set Remove nullspace = angular momentum
+  set Remove nullspace = net surface rotation
 end
 
 
@@ -225,7 +225,7 @@ subsection Postprocess
     set Use spherical unit vectors = true
     set Use ascii data = true
     set Data directory = ../../input_data/
-    set Data file name = vel_1deg_ITRF08.gmt_lkp.txt
+    set Data file name = vel_1deg_NNR.gmt_lkp.txt
   end
  
    subsection Depth average
