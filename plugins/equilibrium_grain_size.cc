@@ -320,12 +320,11 @@ namespace aspect
               out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
               out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
             }
-          
 	  if (use_faults)
             {
               unsigned int fault_index = this->introspection().compositional_index_for_name("faults");
-              if (in.composition[i][fault_index] > 0.5)
-                out.viscosities[i] = 1e21;
+              if (in.composition[i][fault_index] > 0.05)
+                  out.viscosities[i] = 1e21 * in.composition[i][fault_index];
             }
         }
       return;
