@@ -323,8 +323,9 @@ namespace aspect
 	  if (use_faults)
             {
               unsigned int fault_index = this->introspection().compositional_index_for_name("faults");
-              if (in.composition[i][fault_index] > 0.05)
-                  out.viscosities[i] = 1e21 * in.composition[i][fault_index];
+              const double crust_viscosity = std::log10(out.viscosities[i]);
+              if (in.composition[i][fault_index] > 0.)
+                  out.viscosities[i] = pow (10, ( (20 - crust_viscosity) * in.composition[i][fault_index] + crust_viscosity ));
             }
         }
       return;
