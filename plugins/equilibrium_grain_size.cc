@@ -104,7 +104,7 @@ namespace aspect
     EquilibriumGrainSize<dim>::initialize()
     {
       // Get reference viscosity profile from the ascii data
-      reference_viscosity_coordinates = reference_viscosity_profile->get_coordinates();
+      reference_viscosity_coordinates = reference_viscosity_profile->get_interpolation_point_coordinates();
 
       // Get column index for density scaling
       rho_vs_depth_profile.initialize(this->get_mpi_communicator());
