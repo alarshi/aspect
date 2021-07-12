@@ -55,6 +55,28 @@ namespace aspect
 
           gplates_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
         }
+        
+      if (use_surface_strain_rate_data)
+      {
+        strain_rate_data_lookup = std_cxx14::make_unique<Utilities::StructuredDataLookup<dim> >((dim-1)*(dim-1), scale_factor);
+        strain_rate_data_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
+      }
+    }
+
+
+
+    template <int dim>
+    Point<dim>
+    BoundaryVelocityResidualStatistics<dim>::get_spherical_position (const Point<dim> &p) const
+    {
+      const std::array<double,dim> spherical_position = this->get_geometry_model().
+                                                                cartesian_to_natural_coordinates(p);
+      Point<dim> internal_position = p;
+
+      for (unsigned int d = 0; d < dim; ++d)
+        internal_position[d] = spherical_position[d];
+      
+      return internal_position;
     }
 
 
@@ -64,21 +86,15 @@ namespace aspect
     BoundaryVelocityResidualStatistics<dim>::get_data_velocity (const Point<dim> &p) const
     {
       Tensor<1,dim> data_velocity;
+      Point<dim> position;
+
       if (use_ascii_data)
         {
-          Point<dim> internal_position = p;
-
           if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical)
-            {
-              const std::array<double,dim> spherical_position = this->get_geometry_model().
-                                                                cartesian_to_natural_coordinates(p);
-
-              for (unsigned int d = 0; d < dim; ++d)
-                internal_position[d] = spherical_position[d];
-            }
+              position = get_spherical_position(p);
 
           for (unsigned int d = 0; d < dim; ++d)
-            data_velocity[d] = data_lookup->get_data(internal_position, d);
+            data_velocity[d] = data_lookup->get_data(position, d);
           if (use_spherical_unit_vectors == true)
             data_velocity = Utilities::Coordinates::spherical_to_cartesian_vector(data_velocity, p);
         }
@@ -89,6 +105,35 @@ namespace aspect
 
       return data_velocity;
     }
+
+
+    template <int dim>
+    std::vector<Vector<double> >
+    BoundaryVelocityResidualStatistics<dim>::get_data_surface_strain_rate (const Point<dim> &p) const
+    {
+      Tensor<2,dim> data_surface_strain_rate;
+      Point<dim> position;
+
+      if (use_surface_strain_rate_data)
+        {
+          if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical)
+              position = get_spherical_position(p);
+
+          for (unsigned int d=0; d<dim-1; ++d)
+              for (unsigned int e=0; e<dim-1; ++e)
+                data_surface_strain_rate[d][e] = strain_rate_data_lookup->get_data(position, d+e);
+
+          if (use_spherical_unit_vectors == true)
+            data_surface_strain_rate = Utilities::Coordinates::spherical_to_cartesian_vector(data_velocity, p);
+        }
+      else
+        {
+          data_velocity =  gplates_lookup->surface_velocity(p);
+        }
+
+      return data_velocity;
+    }
+
 
 
 
@@ -357,6 +402,10 @@ namespace aspect
                              Patterns::Bool (),
                              "Use ascii data files (e.g., GPS) for computing residual velocities "
                              "instead of GPlates data.");
+          prm.declare_entry ("Use ascii surface strain rate data", "false",
+                             Patterns::Bool (),
+                             "Use ascii data files (e.g., GPS derived) for computing residual strain  "
+                             "rates at the surface.");
         }
         prm.leave_subsection();
       }
@@ -382,6 +431,8 @@ namespace aspect
 
           use_spherical_unit_vectors = prm.get_bool("Use spherical unit vectors");
           use_ascii_data = prm.get_bool("Use ascii data");
+
+          use_surface_strain_rate_data = prm.get_bool("Use ascii surface strain rate data");
 
           if (use_spherical_unit_vectors)
             AssertThrow (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical,
