@@ -55,12 +55,12 @@ namespace aspect
 
           gplates_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
         }
-        
+
       if (use_surface_strain_rate_data)
-      {
-        strain_rate_data_lookup = std_cxx14::make_unique<Utilities::StructuredDataLookup<dim> >((dim-1)*(dim-1), scale_factor);
-        strain_rate_data_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
-      }
+        {
+          strain_rate_data_lookup = std_cxx14::make_unique<Utilities::StructuredDataLookup<dim> >((dim-1)*(dim-1), scale_factor);
+          strain_rate_data_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
+        }
     }
 
 
@@ -70,12 +70,12 @@ namespace aspect
     BoundaryVelocityResidualStatistics<dim>::get_spherical_position (const Point<dim> &p) const
     {
       const std::array<double,dim> spherical_position = this->get_geometry_model().
-                                                                cartesian_to_natural_coordinates(p);
+                                                        cartesian_to_natural_coordinates(p);
       Point<dim> internal_position = p;
 
       for (unsigned int d = 0; d < dim; ++d)
         internal_position[d] = spherical_position[d];
-      
+
       return internal_position;
     }
 
@@ -91,7 +91,7 @@ namespace aspect
       if (use_ascii_data)
         {
           if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical)
-              position = get_spherical_position(p);
+            position = get_spherical_position(p);
 
           for (unsigned int d = 0; d < dim; ++d)
             data_velocity[d] = data_lookup->get_data(position, d);
@@ -107,33 +107,26 @@ namespace aspect
     }
 
 
+
     template <int dim>
     std::vector<Vector<double> >
     BoundaryVelocityResidualStatistics<dim>::get_data_surface_strain_rate (const Point<dim> &p) const
     {
-      Tensor<2,dim> data_surface_strain_rate;
+      std::vector<Vector<double> > data_surface_strain_rate;
       Point<dim> position;
 
       if (use_surface_strain_rate_data)
         {
           if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical)
-              position = get_spherical_position(p);
+            position = get_spherical_position(p);
 
           for (unsigned int d=0; d<dim-1; ++d)
-              for (unsigned int e=0; e<dim-1; ++e)
-                data_surface_strain_rate[d][e] = strain_rate_data_lookup->get_data(position, d+e);
-
-          if (use_spherical_unit_vectors == true)
-            data_surface_strain_rate = Utilities::Coordinates::spherical_to_cartesian_vector(data_velocity, p);
-        }
-      else
-        {
-          data_velocity =  gplates_lookup->surface_velocity(p);
+            for (unsigned int e=0; e<dim-1; ++e)
+              data_surface_strain_rate[d][e] = strain_rate_data_lookup->get_data(position, d+e);
         }
 
-      return data_velocity;
+      return data_surface_strain_rate;
     }
-
 
 
 
