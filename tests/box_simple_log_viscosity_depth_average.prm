@@ -1,4 +1,4 @@
-# Test geometric depth averaging of visocity using  material model in 2d box 
+# Test geometric depth averaging of visocity using  material model in 2d box
 # using a file # to specify depth-dependence.
 
 set Dimension                              = 2
@@ -9,8 +9,8 @@ set Pressure normalization                 = surface
 set Surface pressure                       = 0
 
 
-# Geometry of the domain. In order to test the depth averaging, 
-# we use the X and Y repititions such that four equal depth 
+# Geometry of the domain. In order to test the depth averaging,
+# we use the X and Y repititions such that four equal depth
 # layers of visocisty are created in the depth-dependent material
 # model.
 subsection Geometry model
@@ -101,9 +101,9 @@ subsection Postprocess
     set List of output variables = log viscosity, viscosity
     set Time between graphical output = 0
     set Number of zones = 2
-    set Depth boundaries of zones = 0, 1e6, 2e6 
+    set Depth boundaries of zones = 0, 1e6, 2e6
   end
-   
+
 end
 
 
