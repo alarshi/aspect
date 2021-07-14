@@ -75,49 +75,44 @@ namespace aspect
         if (cell_at_top_boundary)
           for (unsigned int q=0; q<computed_quantities.size(); ++q)
             {
-              Tensor<2,dim-1> grad_u;
+              Tensor<2,dim> grad_u;
               const std::vector<Vector<double> > data_surface_strain_rate =
                 boundary_velocity_residual_statistics.get_data_surface_strain_rate(input_data.evaluation_points[q]);
 
               // Get the surface coordinates only from the computed values
-              if (this->geometry_model.natural_coordinate_system() == "cartesian")
+              if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::cartesian)
                 {
                   grad_u[0] = input_data.solution_gradients[q][0];
                   grad_u[1] = input_data.solution_gradients[q][1];
                 }
-              else if (this->geometry_model.natural_coordinate_system() == "spherical")
+              else if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical)
                 {
                   grad_u[0] = input_data.solution_gradients[q][1];
                   grad_u[1] = input_data.solution_gradients[q][2];
                 }
 
-              const SymmetricTensor<2,dim-1> surface_strain_rate = symmetrize(grad_u);
+              const SymmetricTensor<2,dim> strain_rate = symmetrize(grad_u);
 
               for (unsigned int d=0; d<dim-1; ++d)
                 for (unsigned int e=0; e<dim-1; ++e)
                   computed_quantities[q][Tensor<2,dim-1>::component_to_unrolled_index(TableIndices<2>(d,e))] =
-                    data_surface_strain_rate[d][e] - surface_strain_rate[d][e] * velocity_scaling_factor;
+                    data_surface_strain_rate[d][e] - strain_rate[d][e] * scaling_factor;
 
             }
 
-        const Tensor<1,dim> data_velocity = boundary_velocity_residual_statistics.get_data_velocity(input_data.evaluation_points[q]);
-        for (unsigned int d = 0; d < dim; ++d)
-          computed_quantities[q](d) = data_velocity[d] - input_data.solution_values[q][d] * velocity_scaling_factor;
+      }
+
+
+
+      template <int dim>
+      std::list<std::string>
+      BoundaryStrainRateResidual<dim>::required_other_postprocessors() const
+      {
+        return std::list<std::string> (1, "boundary velocity residual statistics");
       }
 
     }
-
-
-
-    template <int dim>
-    std::list<std::string>
-    BoundaryStrainRateResidual<dim>::required_other_postprocessors() const
-    {
-      return std::list<std::string> (1, "boundary velocity residual statistics");
-    }
-
   }
-}
 }
 
 // explicit instantiations
@@ -127,8 +122,8 @@ namespace aspect
   {
     namespace VisualizationPostprocessors
     {
-      ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(BoundaryVelocityResidual,
-                                                  "boundary velocity residual",
+      ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(BoundaryStrainRateResidual,
+                                                  "boundary strain rate residual",
                                                   "A visualization output object that generates output for the velocity "
                                                   "residual at the top surface. The residual is computed at each point at the "
                                                   "surface as the difference between the modeled velocities and the input "
