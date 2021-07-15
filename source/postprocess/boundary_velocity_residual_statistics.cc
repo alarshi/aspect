@@ -42,7 +42,14 @@ namespace aspect
           data_lookup = std_cxx14::make_unique<Utilities::StructuredDataLookup<dim> >(dim, scale_factor);
           data_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
         }
-      else
+
+      else if (use_surface_strain_rate_data)
+      {
+        strain_rate_data_lookup = std_cxx14::make_unique<Utilities::StructuredDataLookup<dim> >((dim-1)*(dim-1), scale_factor);
+        strain_rate_data_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
+      }
+      
+      else 
         {
           // The two points are used in GPlates to find the 2D plane in which
           // the model lies.  These values are not used for 3D geometries and
@@ -56,11 +63,6 @@ namespace aspect
           gplates_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
         }
 
-      if (use_surface_strain_rate_data)
-        {
-          strain_rate_data_lookup = std_cxx14::make_unique<Utilities::StructuredDataLookup<dim> >((dim-1)*(dim-1), scale_factor);
-          strain_rate_data_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
-        }
     }
 
 
