@@ -32,7 +32,7 @@ namespace aspect
       BoundaryStrainRateResidual<dim>::
       BoundaryStrainRateResidual ()
         :
-        DataPostprocessorVector<dim> ("boundary_strain_rate_residual",
+        DataPostprocessorTensor<dim> ("boundary_strain_rate_residual",
                                       update_quadrature_points | update_gradients)
       {}
 
@@ -84,11 +84,13 @@ namespace aspect
                 {
                   grad_u[0] = input_data.solution_gradients[q][0];
                   grad_u[1] = input_data.solution_gradients[q][1];
+                  grad_u[2] = input_data.solution_gradients[q][2];
                 }
               else if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical)
                 {
                   grad_u[0] = input_data.solution_gradients[q][1];
                   grad_u[1] = input_data.solution_gradients[q][2];
+                  grad_u[2] = input_data.solution_gradients[q][0];
                 }
 
               const SymmetricTensor<2,dim> strain_rate = symmetrize(grad_u);

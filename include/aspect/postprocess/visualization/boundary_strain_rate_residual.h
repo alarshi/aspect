@@ -50,7 +50,7 @@ namespace aspect
        */
       template <int dim>
       class BoundaryStrainRateResidual
-        : public DataPostprocessorVector<dim>,
+        : public DataPostprocessorTensor<dim>,
           public SurfaceOnlyVisualization<dim>,
           public SimulatorAccess<dim>,
           public Interface<dim>
@@ -61,7 +61,7 @@ namespace aspect
           /**
            * Evaluate the velocity residual for the current cell.
            *
-           * @copydoc DataPostprocessorVector<dim>::evaluate_vector_field()
+           * @copydoc DataPostprocessorTensor<dim>::evaluate_vector_field()
            */
           void
           evaluate_vector_field(const DataPostprocessorInputs::Vector<dim> &input_data,
