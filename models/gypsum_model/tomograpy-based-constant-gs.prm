@@ -1,9 +1,9 @@
 set Dimension = 3
-set World builder file                     = ../../input_data/geodynamic_world_builder_smooth_faults.json
+set World builder file                     = ../../input_data/geodynamic_world_builder_smooth_faults-1.json
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
 set Use years in output instead of seconds = true
-set Output directory                       = itrf_stein_tutu_scaling_um_angled-smooth-fault-asth
-set Max nonlinear iterations               = 10
+set Output directory                       = itrf_stein_tutu_scaling_um_angled-smooth-faults
+set Max nonlinear iterations               = 5
 set Nonlinear solver scheme                = iterated Advection and Stokes 
 set Start time                             = 0
 set End time                               = 0
@@ -14,10 +14,11 @@ subsection Solver parameters
   subsection Stokes solver parameters
    set Linear solver tolerance                         = 1e-4
    set Stokes solver type                              = block GMG
-   set Number of cheap Stokes solver steps             = 2000
+   set Number of cheap Stokes solver steps             = 3000
    set GMRES solver restart length                     = 200
    set Maximum number of expensive Stokes solver steps = 2000
    set Use full A block as preconditioner              = true
+   set Linear solver A block tolerance                 = 1e-1
   end
 end
 
@@ -46,7 +47,7 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement = 0
+  set Initial adaptive refinement = 4
   set Initial global refinement = 4
   set Minimum refinement level = 4
   set Refinement fraction = 0.4
@@ -63,8 +64,8 @@ subsection Mesh refinement
 
 
   subsection Minimum refinement function
-#    set Function expression = if(depth > 660000,3, if(depth > 80000,4,5))
-    set Function expression = if(depth > 700000,4, 6)
+    set Function expression = if(depth > 660000, 4, if(depth > 80000, 6 ,8))
+#    set Function expression = if(depth > 700000,4, 8)
     set Variable names = depth,y,z
   end
 end
@@ -84,6 +85,10 @@ subsection Initial composition model
   subsection Ascii data model
     set Data directory = ../../input_data/
     set Data file name = LLNL_velocity_model_wb.txt
+  end
+  
+  subsection World builder
+    set List of relevant compositions = faults
   end
 end
 
