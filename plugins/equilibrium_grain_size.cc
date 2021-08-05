@@ -297,16 +297,6 @@ namespace aspect
                 }
             }
 
-          if (grain_size_out != NULL)
-            for (unsigned int c=0; c<composition.size(); ++c)
-              {
-                if (c == grain_size_index)
-                  grain_size_out->prescribed_field_outputs[i][c] = std::max(min_grain_size, grain_size);
-                else
-                  grain_size_out->prescribed_field_outputs[i][c] = 0.0;
-              }
-
-
           out.viscosities[i] = effective_viscosity;
 
           if (disl_viscosities_out != NULL)
@@ -320,13 +310,28 @@ namespace aspect
               out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
               out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
             }
-	  if (use_faults)
+          
+          unsigned int fault_index = 0.;
+          // If using faults, use the computed faults composition value to compute the viscosity
+	        if (use_faults)
             {
-              unsigned int fault_index = this->introspection().compositional_index_for_name("faults");
+              fault_index = this->introspection().compositional_index_for_name("faults");
               const double crust_viscosity = std::log10(out.viscosities[i]);
               if (in.composition[i][fault_index] > 0.)
                   out.viscosities[i] = pow (10, ( (20 - crust_viscosity) * in.composition[i][fault_index] + crust_viscosity ));
             }
+
+          // Fill the prescribed outputs for grain size and assign faults to a prescribed field for diffusion.
+          if (grain_size_out != NULL)
+            for (unsigned int c=0; c<composition.size(); ++c)
+              {
+                if (c == grain_size_index)
+                  grain_size_out->prescribed_field_outputs[i][c] = std::max(min_grain_size, grain_size);
+                else if (c == fault_index)
+                  grain_size_out->prescribed_field_outputs[i][c] = in.composition[i][fault_index];
+                else 
+                  grain_size_out->prescribed_field_outputs[i][c] = 0.;
+              }
         }
       return;
     }
