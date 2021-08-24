@@ -77,18 +77,13 @@ namespace aspect
 
         /**
          * Compute the scaling factors for each depth layer such that the laterally
-         * averaged viscosiy in that layer is same as the reference vicosity.
+         * averaged viscosiy in that layer is the same as the reference vicosity.
          */
         double
         compute_viscosity_scaling (const double depth) const;
 
         /**
-         * Return whether the model is compressible or not.  Incompressibility
-         * does not necessarily imply that the density is constant; rather, it
-         * may still depend on temperature or pressure. In the current
-         * context, compressibility means whether we should solve the contuity
-         * equation as $\nabla \cdot (\rho \mathbf u)=0$ (compressible Stokes)
-         * or as $\nabla \cdot \mathbf{u}=0$ (incompressible Stokes).
+         * Return whether the model is compressible or not.
          */
         virtual bool is_compressible () const;
 
@@ -384,13 +379,6 @@ namespace aspect
         bool use_table_properties;
         bool use_enthalpy;
         bool use_bilinear_interpolation;
-
-        /**
-         * A flag indicating whether ASPECT computes the density, or whether
-         * we require a compositional field called 'gypsum_density' and use it
-         * as density field.
-         */
-        bool use_gypsum_density;
 
         /**
          * Parameter value that determines whether to read the viscosity with depth

@@ -76,7 +76,7 @@ namespace aspect
           if (outputs.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim>>() == nullptr)
             {
               outputs.additional_outputs.push_back(
-                std_cxx14::make_unique<MaterialModel::UnscaledViscosityAdditionalOutputs<dim>> (n_points));
+                std::make_unique<MaterialModel::UnscaledViscosityAdditionalOutputs<dim>> (n_points));
             }
         }
 
@@ -123,11 +123,11 @@ namespace aspect
       {
         this->update();
       });
-      
+
       this->get_signals().post_advection_solver.connect([&](const SimulatorAccess<dim> &,
-                                                         const unsigned int ,
-                                                         const unsigned int ,
-                                                         const SolverControl &)
+                                                            const unsigned int ,
+                                                            const unsigned int ,
+                                                            const SolverControl &)
       {
         this->update();
       });
@@ -184,6 +184,8 @@ namespace aspect
       // Make maximal depth slightly larger to ensure depth < maximal_depth
       const double maximal_depth = this->get_geometry_model().maximal_depth() *
                                    (1.0+std::numeric_limits<double>::epsilon());
+      (void) maximal_depth;
+
       Assert(depth < maximal_depth, ExcInternalError());
 
       unsigned int depth_index;
@@ -231,7 +233,7 @@ namespace aspect
 
       const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
 
-      for (unsigned int i=0; i<in.position.size(); ++i)
+      for (unsigned int i=0; i<in.n_evaluation_points(); ++i)
         {
           // Use the adiabatic pressure instead of the real one, because of oscillations
           const double pressure = (this->get_adiabatic_conditions().is_initialized())
@@ -240,9 +242,14 @@ namespace aspect
                                   :
                                   in.pressure[i];
 
+          const unsigned int phase_index = get_phase_index(in.position[i], in.temperature[i], pressure);
+
+          if (DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim> >())
+            disl_viscosities_out->boundary_area_change_work_fractions[i] =
+              boundary_area_change_work_fraction[phase_index];
+
           // Computed according to equation (7) in Dannberg et al., 2016, using the paleowattmeter grain size.
           // Austin and Evans (2007): Paleowattmeters: A scaling relation for dynamically recrystallized grain size. Geology 35, 343-346.
-          const unsigned int phase_index = get_phase_index(in.position[i], in.temperature[i], pressure);
           const double prefactor = geometric_constant[phase_index] * grain_boundary_energy[phase_index] * grain_growth_rate_constant[phase_index]
                                    / (boundary_area_change_work_fraction[phase_index] * grain_growth_exponent[phase_index]);
           const double exponential = std::exp(- (grain_growth_activation_energy[phase_index] + pressure * grain_growth_activation_volume[phase_index])
@@ -310,15 +317,15 @@ namespace aspect
               out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
               out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
             }
-          
+
           unsigned int fault_index = 0.;
           // If using faults, use the computed faults composition value to compute the viscosity
-	        if (use_faults)
+          if (use_faults)
             {
               fault_index = this->introspection().compositional_index_for_name("faults");
               const double crust_viscosity = std::log10(out.viscosities[i]);
               if (in.composition[i][fault_index] > 0.)
-                  out.viscosities[i] = pow (10, ( (20 - crust_viscosity) * in.composition[i][fault_index] + crust_viscosity ));
+                out.viscosities[i] = pow (10, ( (20 - crust_viscosity) * in.composition[i][fault_index] + crust_viscosity ));
             }
 
           // Fill the prescribed outputs for grain size and assign faults to a prescribed field for diffusion.
@@ -329,7 +336,7 @@ namespace aspect
                   grain_size_out->prescribed_field_outputs[i][c] = std::max(min_grain_size, grain_size);
                 else if (c == fault_index)
                   grain_size_out->prescribed_field_outputs[i][c] = in.composition[i][fault_index];
-                else 
+                else
                   grain_size_out->prescribed_field_outputs[i][c] = 0.;
               }
         }
@@ -442,8 +449,8 @@ namespace aspect
       if (this->get_adiabatic_conditions().is_initialized())
         {
           const double adiabatic_energy_term
-            = exp((diffusion_activation_energy[phase_index] + diffusion_activation_volume[phase_index] * adiabatic_pressure)
-                  / (diffusion_creep_exponent[phase_index] * constants::gas_constant * this->get_adiabatic_conditions().temperature(position)));
+            = std::exp((diffusion_activation_energy[phase_index] + diffusion_activation_volume[phase_index] * adiabatic_pressure)
+                       / (diffusion_creep_exponent[phase_index] * constants::gas_constant * this->get_adiabatic_conditions().temperature(position)));
 
           const double temperature_dependence = energy_term / adiabatic_energy_term;
           if (temperature_dependence > max_temperature_dependence_of_eta)
@@ -454,9 +461,9 @@ namespace aspect
 
       const double strain_rate_dependence = (1.0 - diffusion_creep_exponent[phase_index]) / diffusion_creep_exponent[phase_index];
 
-      return pow(diffusion_creep_prefactor[phase_index],-1.0/diffusion_creep_exponent[phase_index])
+      return std::pow(diffusion_creep_prefactor[phase_index],-1.0/diffusion_creep_exponent[phase_index])
              * std::pow(second_strain_rate_invariant,strain_rate_dependence)
-             * pow(grain_size, diffusion_creep_grain_size_exponent[phase_index]/diffusion_creep_exponent[phase_index])
+             * std::pow(grain_size, diffusion_creep_grain_size_exponent[phase_index]/diffusion_creep_exponent[phase_index])
              * energy_term;
     }
 
@@ -516,8 +523,8 @@ namespace aspect
       // find out in which phase we are
       const unsigned int phase_index = get_phase_index(position, temperature, pressure);
 
-      double energy_term = exp((dislocation_activation_energy[phase_index] + dislocation_activation_volume[phase_index] * pressure)
-                               / (dislocation_creep_exponent[phase_index] * constants::gas_constant * temperature));
+      double energy_term = std::exp((dislocation_activation_energy[phase_index] + dislocation_activation_volume[phase_index] * pressure)
+                                    / (dislocation_creep_exponent[phase_index] * constants::gas_constant * temperature));
 
       // If we are past the initialization of the adiabatic profile, use it to
       // limit viscosity variations due to temperature.
@@ -757,7 +764,7 @@ namespace aspect
       if (in.current_cell.state() == IteratorState::valid)
         {
           // get the pressures and temperatures at the vertices of the cell
-          const QTrapez<dim> quadrature_formula;
+          const QTrapezoid<dim> quadrature_formula;
           const unsigned int n_q_points = quadrature_formula.size();
           FEValues<dim> fe_values (this->get_mapping(),
                                    this->get_fe(),
@@ -795,11 +802,18 @@ namespace aspect
     EquilibriumGrainSize<dim>::
     evaluate(const typename Interface<dim>::MaterialModelInputs &in, typename Interface<dim>::MaterialModelOutputs &out) const
     {
+      // Determine some properties that are constant for all points
+      const unsigned int vs_composition_index =  this->introspection().compositional_index_for_name("Vs");
+      const unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
+
+      const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
+        this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
+
       // This function will fill the outputs for grain size, viscosity, and dislocation viscosity
-      if (in.strain_rate.size() > 0)
+      if (in.requests_property(MaterialProperties::viscosity))
         compute_equilibrium_grain_size(in, out);
 
-      for (unsigned int i=0; i<in.position.size(); ++i)
+      for (unsigned int i=0; i < in.n_evaluation_points(); ++i)
         {
           // Use the adiabatic pressure instead of the real one, because of oscillations
           const double pressure = (this->get_adiabatic_conditions().is_initialized())
@@ -808,23 +822,9 @@ namespace aspect
                                   :
                                   in.pressure[i];
 
-          if (DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim> >())
-            disl_viscosities_out->boundary_area_change_work_fractions[i] =
-              boundary_area_change_work_fraction[get_phase_index(in.position[i],in.temperature[i],pressure)];
-
-          const double reference_density = this->get_adiabatic_conditions().density(in.position[i]);
-
-          const unsigned int vs_index =  this->introspection().compositional_index_for_name("Vs");
           // vs_index + 1: vs_anomaly in m/sec
-          const double delta_log_vs = in.composition[i][vs_index + 1];
-
+          const double delta_log_vs = in.composition[i][vs_composition_index + 1];
           double density_anomaly = delta_log_vs * 0.15; // Becker (2006) scaling factor
-
-          if (use_gypsum_density)
-            {
-              const unsigned int density_index = this->introspection().compositional_index_for_name("gypsum_density");
-              out.densities[i] = in.composition[i][density_index];
-            }
 
           out.thermal_conductivities[i] = k_value;
           out.compressibilities[i] = compressibility(in.temperature[i], pressure, in.composition[i], in.position[i]);
@@ -842,18 +842,12 @@ namespace aspect
                 seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
               }
 
-          // set up variable to interpolate prescribed field outputs onto temperature field
-          PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >();
-
           // Get variable lithosphere depths using an adiabatic boundary ascii file
-          const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
-            this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
 
-          unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
 
-          const double depth = this->get_geometry_model().depth(in.position[i]);
-          // The value of uppermost mantle is chosen to difference temperature and density computations, based on Tutu et al.,(2018)
-          double uppermost_mantle_thickness = 300e3;
+          // Temperature and density of the upper part of the mantle is computed separately,
+          // based on Tutu et al.,(2018)
+          const double uppermost_mantle_thickness = 300e3;
           double crustal_thickness = 0.;
           double lithosphere_thickness = 0.;
 
@@ -863,42 +857,42 @@ namespace aspect
               crustal_thickness = crustal_boundary_depth.get_data_component(surface_boundary_id, in.position[i], 0);
             }
 
+          const double depth = this->get_geometry_model().depth(in.position[i]);
           double new_temperature = in.temperature[i];
 
-          if (prescribed_temperature_out != NULL)
+          if (PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >())
             {
               const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
               // temperature modified by AS using the parameters given in the table by Becker, (2006).
-              const double mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785;
-              const double temp_0 = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
-              
+              const double mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
+              const double initial_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
+
               const double sigmoid_width = 2.e4;
               const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
-              
-              new_temperature = temp_0 + (mantle_temperature - temp_0) * sigmoid;
 
+              new_temperature = initial_temperature + (mantle_temperature - initial_temperature) * sigmoid;
 
               prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
             }
 
           // Reference temperature is 20 C in Tutu et al., (2018).
-          double deltaT  = new_temperature - 293 ;
+          double deltaT  = new_temperature - 293.;
           // Density computation
           if (depth <= crustal_thickness)
-            out.densities[i] = 2.85e3 * ( 1 - 2.7e-5 * deltaT + pressure/6.3e10 );
+            out.densities[i] = 2.85e3 * ( 1. - 2.7e-5 * deltaT + pressure/6.3e10 );
           else if (depth > crustal_thickness && depth <= lithosphere_thickness)
-            out.densities[i] = 3.27e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e10 );
+            out.densities[i] = 3.27e3 * ( 1. - 3e-5 * deltaT + pressure/12.2e10 );
           else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
-            out.densities[i] = 3.3e3 * ( 1 - 3e-5 * deltaT + pressure/12.2e10 );
+            out.densities[i] = 3.3e3 * ( 1. - 3e-5 * deltaT + pressure/12.2e10 );
           else
             {
-              //Densities below 300 km are computed using the scaling relationship from the velocity anomalies
+              // Densities below 300 km are computed using the scaling relationship from the velocity anomalies
               if (use_depth_dependent_rho_vs)
                 density_anomaly = delta_log_vs * rho_vs_depth_profile.get_data_component(Point<1>(depth), density_scaling_index);
               else
                 // Values from Becker [2006], GJI
                 density_anomaly = delta_log_vs * 0.15;
-              out.densities[i] = reference_density * (1 + density_anomaly);
+              out.densities[i] = this->get_adiabatic_conditions().density(in.position[i]) * (1. + density_anomaly);
             }
         }
     }
@@ -1176,10 +1170,6 @@ namespace aspect
                              Patterns::Bool (),
                              "This parameter determines whether to use bilinear interpolation "
                              "to compute material properties (slower but more accurate).");
-          prm.declare_entry ("Use GyPSuM density", "false",
-                             Patterns::Bool (),
-                             "A flag indicating whether ASPECT computes the density, or we look for "
-                             "a compositional field named 'gypsum_density' and use it as density field.");
           prm.declare_entry ("Use depth dependent viscosity", "false",
                              Patterns::Bool (),
                              "This parameter value determines if we want to use the layered depth dependent "
@@ -1369,7 +1359,6 @@ namespace aspect
                                    (prm.get ("Derivatives file names"));
           use_table_properties = prm.get_bool ("Use table properties");
           use_enthalpy = prm.get_bool ("Use enthalpy for material properties");
-          use_gypsum_density = prm.get_bool ("Use GyPSuM density");
           use_depth_dependent_viscosity = prm.get_bool ("Use depth dependent viscosity");
           use_faults = prm.get_bool ("Use faults");
           use_depth_dependent_rho_vs = prm.get_bool("Use depth dependent density scaling");
@@ -1377,7 +1366,7 @@ namespace aspect
           // Parse depth-dependent viscosity parameters
           if (use_depth_dependent_viscosity)
             {
-              reference_viscosity_profile = std_cxx14::make_unique<Rheology::AsciiDepthProfile<dim>>();
+              reference_viscosity_profile = std::make_unique<Rheology::AsciiDepthProfile<dim>>();
               reference_viscosity_profile->initialize_simulator (this->get_simulator());
               reference_viscosity_profile->parse_parameters(prm);
               reference_viscosity_profile->initialize();
@@ -1462,7 +1451,7 @@ namespace aspect
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
-            std_cxx14::make_unique<MaterialModel::DislocationViscosityOutputs<dim>> (n_points));
+            std::make_unique<MaterialModel::DislocationViscosityOutputs<dim>> (n_points));
         }
 
       // We need the prescribed field outputs to interpolate the grain size onto a compositional field.
@@ -1470,7 +1459,7 @@ namespace aspect
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
-            std_cxx14::make_unique<MaterialModel::PrescribedFieldOutputs<dim>> (n_points, this->n_compositional_fields()));
+            std::make_unique<MaterialModel::PrescribedFieldOutputs<dim>> (n_points, this->n_compositional_fields()));
         }
 
       // These properties are only output properties. But we should only create them if they are filled.
@@ -1479,7 +1468,7 @@ namespace aspect
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
-            std_cxx14::make_unique<MaterialModel::SeismicAdditionalOutputs<dim>> (n_points));
+            std::make_unique<MaterialModel::SeismicAdditionalOutputs<dim>> (n_points));
         }
 
       if (this->get_parameters().temperature_method == Parameters<dim>::AdvectionFieldMethod::prescribed_field &&
@@ -1487,7 +1476,7 @@ namespace aspect
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
-            std_cxx14::make_unique<MaterialModel::PrescribedTemperatureOutputs<dim>> (n_points));
+            std::make_unique<MaterialModel::PrescribedTemperatureOutputs<dim>> (n_points));
         }
 
       // We need additional field outputs for the unscaled viscosity
@@ -1495,7 +1484,7 @@ namespace aspect
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
-            std_cxx14::make_unique<UnscaledViscosityAdditionalOutputs<dim>> (n_points));
+            std::make_unique<UnscaledViscosityAdditionalOutputs<dim>> (n_points));
         }
     }
   }
