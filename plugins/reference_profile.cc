@@ -95,10 +95,10 @@ namespace aspect
       for (unsigned int i=0; i<n_points; ++i)
         {
           // use material properties calculated at i-1
-          // The first column in the input ascii file is the radius from the center of the Earth, 
+          // The first column in the input ascii file is the radius from the center of the Earth,
           // therfore we convert the depths to the radial values in the get_data_component().
           const double model_depths = double(i)/double(n_points-1)*this->get_geometry_model().maximal_depth();
-          
+
           const double radius = 6378137.;
 
           const double density = reference_profile.get_data_component(Point<1>(radius - model_depths),density_index);
@@ -116,7 +116,7 @@ namespace aspect
                 }
             }
           else
-            {              
+            {
               const double alpha = out.thermal_expansion_coefficients[0];
               // Handle the case that cp is zero (happens in simple Stokes test problems like sol_cx). By setting
               // 1/cp = 0.0 we will have a constant temperature profile with depth.
@@ -165,7 +165,7 @@ namespace aspect
 
           densities[i] = density;
 
-          this->get_material_model().evaluate(in, out);          
+          this->get_material_model().evaluate(in, out);
         }
 
       if (gravity_direction == 1 && this->get_surface_pressure() >= 0)
@@ -255,7 +255,7 @@ namespace aspect
 
     template <int dim>
     double ReferenceProfile<dim>::get_property (const Point<dim> &p,
-                                              const std::vector<double> &property) const
+                                                const std::vector<double> &property) const
     {
       const double z = this->get_geometry_model().depth(p);
 
@@ -361,7 +361,7 @@ namespace aspect
           if ((this->n_compositional_fields() > 0) && (reference_composition == reference_function))
             {
               composition_function
-                = std_cxx14::make_unique<Functions::ParsedFunction<1>>(this->n_compositional_fields());
+                = std::make_unique<Functions::ParsedFunction<1>>(this->n_compositional_fields());
               try
                 {
                   composition_function->parse_parameters (prm);

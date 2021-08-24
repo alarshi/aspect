@@ -49,11 +49,11 @@ namespace aspect
       template <int dim>
       class StrainResidual
         : public DataPostprocessorScalar<dim>,
-		  public Utilities::AsciiDataBoundary<dim>,
+          public Utilities::AsciiDataBoundary<dim>,
           public Interface<dim>
       {
         public:
-    	  StrainResidual ();
+          StrainResidual ();
 
           void initialize () override;
 //
@@ -68,14 +68,14 @@ namespace aspect
            * Declare the parameters this class takes through input files.
            */
           static
-		  void
-		  declare_parameters (ParameterHandler &prm);
+          void
+          declare_parameters (ParameterHandler &prm);
 
           /**
            * Read the parameters this class declares from the parameter file.
            */
           void
-		  parse_parameters (ParameterHandler &prm) override;
+          parse_parameters (ParameterHandler &prm) override;
 
       };
     }

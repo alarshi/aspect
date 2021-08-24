@@ -28,32 +28,32 @@ namespace aspect
     {
       template <int dim>
       StrainResidual<dim>::
-	  StrainResidual()
+      StrainResidual()
         :
-	  DataPostprocessorScalar<dim> ("strain_residual",
-        			update_values | update_gradients)
+        DataPostprocessorScalar<dim> ("strain_residual",
+                                      update_values | update_gradients)
       {}
 
       template <int dim>
       void
-	  StrainResidual<dim>::initialize ()
-	  {
-    	std::set<types::boundary_id> surface_boundary_set;
-    	surface_boundary_set.insert(1); //*** hard coded
-     // The input ascii table contains one data column (strain rates) in addition to the coordinate columns.
-    	Utilities::AsciiDataBoundary<dim>::initialize(surface_boundary_set, 1);
-	  }
+      StrainResidual<dim>::initialize ()
+      {
+        std::set<types::boundary_id> surface_boundary_set;
+        surface_boundary_set.insert(1); //*** hard coded
+        // The input ascii table contains one data column (strain rates) in addition to the coordinate columns.
+        Utilities::AsciiDataBoundary<dim>::initialize(surface_boundary_set, 1);
+      }
 
 
       template <int dim>
       void
-	  StrainResidual<dim>::
+      StrainResidual<dim>::
       evaluate_vector_field(const DataPostprocessorInputs::Vector<dim> &input_data,
                             std::vector<Vector<double> > &computed_quantities) const
       {
 
-    	Assert ((computed_quantities[0].size() == dim), ExcInternalError());
-        auto cell = input_data.template get_cell<DoFHandler<dim> >();
+        Assert ((computed_quantities[0].size() == dim), ExcInternalError());
+        auto cell = input_data.template get_cell<dim>();
 
         // We only want to output dynamic topography at the top and bottom
         // boundary, so only compute it if the current cell has
@@ -65,58 +65,58 @@ namespace aspect
             cell_at_top_boundary = true;
 
         if (cell_at_top_boundary)
-        {
-		  for (unsigned int q=0; q<computed_quantities.size(); ++q)
-		  {
-		    for (unsigned int d = 0; d < dim; ++d)
-			{
-			  Tensor<2,dim> grad_u;
+          {
+            for (unsigned int q=0; q<computed_quantities.size(); ++q)
+              {
+                for (unsigned int d = 0; d < dim; ++d)
+                  {
+                    Tensor<2,dim> grad_u;
 
-			  grad_u[d] = input_data.solution_gradients[q][d];
-			  const SymmetricTensor<2,dim> strain_rate = symmetrize (grad_u);
-			  const SymmetricTensor<2,dim> compressible_strain_rate
-			   = (this->get_material_model().is_compressible()
-					?
-					strain_rate - 1./3 * trace(strain_rate) * unit_symmetric_tensor<dim>()
-					:
-					strain_rate);
+                    grad_u[d] = input_data.solution_gradients[q][d];
+                    const SymmetricTensor<2,dim> strain_rate = symmetrize (grad_u);
+                    const SymmetricTensor<2,dim> compressible_strain_rate
+                      = (this->get_material_model().is_compressible()
+                         ?
+                         strain_rate - 1./3 * trace(strain_rate) * unit_symmetric_tensor<dim>()
+                         :
+                         strain_rate);
 
-			  computed_quantities[q](0) = std::sqrt(compressible_strain_rate *
-																  compressible_strain_rate);
-		    }
-		  }
-        }
+                    computed_quantities[q](0) = std::sqrt(compressible_strain_rate *
+                                                          compressible_strain_rate);
+                  }
+              }
+          }
       }
 
 
       template <int dim>
       void
-	  StrainResidual<dim>::declare_parameters (ParameterHandler &prm)
-	  {
-    	prm.enter_subsection("Postprocess");
-    	{
+      StrainResidual<dim>::declare_parameters (ParameterHandler &prm)
+      {
+        prm.enter_subsection("Postprocess");
+        {
           prm.enter_subsection("Visualization");
-    	  {
-    	     Utilities::AsciiDataBase<dim>::declare_parameters(prm,
-    					  "$ASPECT_SOURCE_DIR/data/initial-temperature/adiabatic-boundary/",
-						  "adiabatic_boundary.txt", "Surface properties");
-    	  }
-    	  prm.leave_subsection();
-    	}
-    	prm.leave_subsection();
-	  }
+          {
+            Utilities::AsciiDataBase<dim>::declare_parameters(prm,
+                                                              "$ASPECT_SOURCE_DIR/data/initial-temperature/adiabatic-boundary/",
+                                                              "adiabatic_boundary.txt", "Surface properties");
+          }
+          prm.leave_subsection();
+        }
+        prm.leave_subsection();
+      }
 
 
       template <int dim>
       void
-	  StrainResidual<dim>::parse_parameters (ParameterHandler &prm)
-	  {
-    	prm.enter_subsection("Postprocess");
+      StrainResidual<dim>::parse_parameters (ParameterHandler &prm)
+      {
+        prm.enter_subsection("Postprocess");
         prm.enter_subsection("Visualization");
         Utilities::AsciiDataBase<dim>::parse_parameters(prm, "Surface properties");
         prm.leave_subsection();
-    	prm.leave_subsection();
-	  }
+        prm.leave_subsection();
+      }
 
     }
   }
@@ -133,7 +133,7 @@ namespace aspect
       ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(StrainResidual,
                                                   "strain residual",
                                                   "A visualization for caculating the surface strain to compare"
-												  "with the GPS strains.")
+                                                  "with the GPS strains.")
     }
   }
 }
