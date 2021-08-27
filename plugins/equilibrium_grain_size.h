@@ -118,28 +118,6 @@ namespace aspect
          * @}
          */
 
-        /**
-         * Returns the enthalpy as calculated by HeFESTo.
-         */
-        double enthalpy (const double      temperature,
-                         const double      pressure,
-                         const std::vector<double> &compositional_fields,
-                         const Point<dim> &position) const;
-
-        /**
-         * Returns the cell-wise averaged enthalpy derivatives for the evaluate
-         * function and postprocessors. The function returns two pairs, the
-         * first one represents the temperature derivative, the second one the
-         * pressure derivative. The first member of each pair is the derivative,
-         * the second one the number of vertex combinations the function could
-         * use to compute the derivative. The second member is useful to handle
-         * the case no suitable combination of vertices could be found (e.g.
-         * if the temperature and pressure on all vertices of the current
-         * cell is identical.
-         */
-        std::array<std::pair<double, unsigned int>,2>
-        enthalpy_derivative (const typename Interface<dim>::MaterialModelInputs &in) const;
-
       protected:
         double reference_rho;
         double reference_T;
@@ -245,7 +223,6 @@ namespace aspect
         double max_thermal_expansivity;
         unsigned int max_latent_heat_substeps;
         double min_grain_size;
-        double pv_grain_size_scaling;
 
         double diffusion_viscosity (const double      temperature,
                                     const double      pressure,
@@ -377,8 +354,6 @@ namespace aspect
         std::vector<std::string> derivatives_file_names;
         unsigned int n_material_data;
         bool use_table_properties;
-        bool use_enthalpy;
-        bool use_bilinear_interpolation;
 
         /**
          * Parameter value that determines whether to read the viscosity with depth
