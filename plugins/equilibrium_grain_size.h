@@ -76,6 +76,16 @@ namespace aspect
         void update();
 
         /**
+         * Compute the reference viscosity against which the viscosities in the model
+         * are scaled. The reference viscosity is from a depth-dependent ascii profile and
+         * the function returns as the second parameter in the pair the support point in
+         * that profile that has the next smaller depth value than the input parameter
+         * @p depth.
+         */
+        std::pair<double, unsigned int>
+        get_reference_viscosity (const double depth) const;
+
+        /**
          * Compute the scaling factors for each depth layer such that the laterally
          * averaged viscosiy in that layer is the same as the reference vicosity.
          */
@@ -200,7 +210,7 @@ namespace aspect
          * in the current model. Can be used to compare (and potentially scale)
          * the computed viscosity to the reference profile.
          */
-        std::vector<double> laterally_averaged_viscosity_profile;
+        std::vector<double> average_viscosity_profile;
 
         /**
          * Variable returned  to determine if the evaluate () funciton is called and
@@ -286,16 +296,6 @@ namespace aspect
                                 const double pressure,
                                 const std::vector<double> &compositional_fields,
                                 const Point<dim> &position) const;
-
-        double specific_heat (const double temperature,
-                              const double pressure,
-                              const std::vector<double> &compositional_fields,
-                              const Point<dim> &position) const;
-
-        double thermal_expansion_coefficient (const double      temperature,
-                                              const double      pressure,
-                                              const std::vector<double> &compositional_fields,
-                                              const Point<dim> &position) const;
 
         /**
          * Returns the p-wave velocity as calculated by HeFESTo.
