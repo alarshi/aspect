@@ -181,9 +181,9 @@ namespace aspect
     double
     EquilibriumGrainSize<dim>::compute_viscosity_scaling (const double depth) const
     {
-      // Do not scale if no average viscosity is available yet.
-      if (average_viscosity_profile.size() == 0)
-        return 1.0;
+      Assert(average_viscosity_profile.size() != 0,
+             ExcMessage("The average viscosity profile has not yet been computed. "
+                        "Unable to scale viscosities"));
 
       // Make maximal depth slightly larger to ensure depth < maximal_depth
       const double maximal_depth = this->get_geometry_model().maximal_depth() *
@@ -333,7 +333,9 @@ namespace aspect
             unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]);
 
           // Scale viscosity so that laterally averaged viscosity == reference viscosity profile
-          out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
+          // Only scale if average viscosity is already available.
+          if (average_viscosity_profile.size() != 0)
+            out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
 
           // Ensure we respect viscosity bounds
           out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
@@ -347,8 +349,8 @@ namespace aspect
                                             + background_viscosity_log * (1. - in.composition[i][fault_index]));
             }
 
-            Assert(out.viscosities[i] > 0,
-                   ExcMessage("Viscosity has to be positive. Instead it is: " + std::to_string(out.viscosities[i])));
+          Assert(out.viscosities[i] > 0,
+                 ExcMessage("Viscosity has to be positive. Instead it is: " + std::to_string(out.viscosities[i])));
 
           // Fill the prescribed outputs for grain size and assign faults to a prescribed field for diffusion.
           if (prescribed_field_out != NULL)
