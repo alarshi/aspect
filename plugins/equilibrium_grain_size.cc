@@ -164,9 +164,9 @@ namespace aspect
                                       this->get_lateral_averaging().compute_lateral_averages(reference_viscosity_coordinates,
                                           lateral_averaging_properties);
 
-      laterally_averaged_viscosity_profile.swap(averages[0]);
+      average_viscosity_profile.swap(averages[0]);
 
-      for (const auto &lateral_viscosity_average: laterally_averaged_viscosity_profile)
+      for (const auto &lateral_viscosity_average: average_viscosity_profile)
         AssertThrow(numbers::is_finite(lateral_viscosity_average),
                     ExcMessage("In computing depth averages, there is at"
                                " least one depth band that does not have"
@@ -182,7 +182,7 @@ namespace aspect
     EquilibriumGrainSize<dim>::compute_viscosity_scaling (const double depth) const
     {
       // Do not scale if no average viscosity is available yet.
-      if (laterally_averaged_viscosity_profile.size() == 0)
+      if (average_viscosity_profile.size() == 0)
         return 1.0;
 
       // Make maximal depth slightly larger to ensure depth < maximal_depth
@@ -217,7 +217,7 @@ namespace aspect
       // the largest depth in the profile).
       const double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
 
-      const double average_viscosity = std::pow(10, laterally_averaged_viscosity_profile[depth_index]);
+      const double average_viscosity = std::pow(10, average_viscosity_profile[depth_index]);
 
       return reference_viscosity / average_viscosity;
     }
