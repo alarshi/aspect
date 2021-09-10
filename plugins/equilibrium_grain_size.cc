@@ -228,13 +228,11 @@ namespace aspect
     double
     EquilibriumGrainSize<dim>::compute_viscosity_scaling (const double depth) const
     {
-      
-      const double reference_viscosity = get_reference_viscosity (depth).first;
-      const unsigned int depth_index   = get_reference_viscosity (depth).second;
+      const std::pair<double, unsigned int> reference_viscosity_and_depth_index = get_reference_viscosity (depth);
 
-      const double average_viscosity = std::pow(10, average_viscosity_profile[depth_index]);
+      const double average_viscosity = std::pow(10, average_viscosity_profile[reference_viscosity_and_depth_index.second]);
 
-      return reference_viscosity / average_viscosity;
+      return reference_viscosity_and_depth_index.first / average_viscosity;
     }
 
 
@@ -250,10 +248,6 @@ namespace aspect
       UnscaledViscosityAdditionalOutputs<dim> *unscaled_viscosity_out =
         out.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim> >();
 
-      const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
-        this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
-
-      double lithosphere_thickness = 0.;
       const unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
 
       const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
@@ -278,7 +272,11 @@ namespace aspect
                  ExcMessage("Pressure has to be non-negative for the viscosity computation. Instead it is: "
                             + std::to_string(pressure)));
           
-          // Get variable lithosphere and crustal depths using an adiabatic boundary ascii file
+          const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
+          this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
+
+          double lithosphere_thickness = 0.;
+          // Get variable lithosphere using an adiabatic boundary ascii file
           if (this->get_adiabatic_conditions().is_initialized())
             lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
  
@@ -362,7 +360,7 @@ namespace aspect
           const double viscosity_scaling_below_this_depth = 60e3;
 
           // Scale viscosity so that laterally averaged viscosity == reference viscosity profile
-          // Only scale if average viscosity is already available and it below a specified depth.
+          // Only scale if average viscosity is already available and we are below a specified depth.
           if (average_viscosity_profile.size() != 0 && depth > viscosity_scaling_below_this_depth)
             out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
 
