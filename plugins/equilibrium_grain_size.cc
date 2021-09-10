@@ -359,9 +359,9 @@ namespace aspect
           if ( (use_depth_dependent_viscosity) && (unscaled_viscosity_out != nullptr) )
             unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]);
 
-	  const double viscosity_scaling_below_this_depth = 60e3;
+       	  const double viscosity_scaling_below_this_depth = 60e3;
 
-	  // Scale viscosity so that laterally averaged viscosity == reference viscosity profile
+       	  // Scale viscosity so that laterally averaged viscosity == reference viscosity profile
           // Only scale if average viscosity is already available and it below a specified depth.
           if (average_viscosity_profile.size() != 0 && depth > viscosity_scaling_below_this_depth)
             out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
