@@ -64,14 +64,12 @@ subsection Mesh refinement
     set Boundary refinement indicators = top
   end
 
-
 #  subsection Minimum refinement function
 #    set Function expression = if(depth > 660000, 4, if(depth > 80000, 6 ,8))
 #    set Function expression = if(depth > 700000,4, 8)
 #    set Variable names = depth,y,z
 #  end
 end
-
 
 
 subsection Compositional fields
@@ -97,7 +95,6 @@ end
 
 subsection Boundary velocity model
   set Tangential velocity boundary indicators = bottom, top
-#  set Zero velocity boundary indicators = top
 end
 
 
@@ -243,4 +240,3 @@ subsection Postprocess
     set Depth boundaries of zones = 0.00000e+00,1.00025e+05,2.19799e+05,3.40211e+05,4.10292e+05,5.19874e+05,6.60036e+05,8.00198e+05,9.39722e+05,1.07988e+06,1.22005e+06,1.36021e+06,1.49973e+06,1.63990e+06,1.78006e+06,1.92022e+06,2.05974e+06,2.19991e+06,2.34007e+06,2.48023e+06,2.61976e+06,2.75992e+06,2.90008e+06 
   end
 end
-
