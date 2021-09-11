@@ -248,6 +248,9 @@ namespace aspect
       UnscaledViscosityAdditionalOutputs<dim> *unscaled_viscosity_out =
         out.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim> >();
 
+      const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
+      this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
+
       const unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
 
       const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
@@ -272,9 +275,6 @@ namespace aspect
                  ExcMessage("Pressure has to be non-negative for the viscosity computation. Instead it is: "
                             + std::to_string(pressure)));
           
-          const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
-          this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
-
           double lithosphere_thickness = 0.;
           // Get variable lithosphere using an adiabatic boundary ascii file
           if (this->get_adiabatic_conditions().is_initialized())
