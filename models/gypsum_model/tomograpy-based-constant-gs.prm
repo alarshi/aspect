@@ -1,10 +1,11 @@
 set Dimension = 3
-set World builder file                     = ../../input_data/geodynamic_world_builder_smooth_faults-1.json
+set World builder file                     = ../../input_data/geodynamic_world_builder_smooth_faults_deep.json
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
 set Use years in output instead of seconds = true
-set Output directory                       = itrf_stein_tutu_scaling_um_angled-smooth-faults
-set Max nonlinear iterations               = 5
-set Nonlinear solver scheme                = iterated Advection and Stokes 
+set Output directory                       = itrf_stein_tutu_scaling_deep-smooth-faults-3
+set Max nonlinear iterations               = 10
+set Nonlinear solver tolerance             = 1e-4
+set Nonlinear solver scheme                = iterated Advection and Stokes #single Advection, single Stokes #
 set Start time                             = 0
 set End time                               = 0
 set Adiabatic surface temperature          = 1600.0
@@ -14,11 +15,12 @@ subsection Solver parameters
   subsection Stokes solver parameters
    set Linear solver tolerance                         = 1e-4
    set Stokes solver type                              = block GMG
-   set Number of cheap Stokes solver steps             = 3000
-   set GMRES solver restart length                     = 200
-   set Maximum number of expensive Stokes solver steps = 2000
+   set Number of cheap Stokes solver steps             = 5000
+   set GMRES solver restart length                     = 1000
+   set Maximum number of expensive Stokes solver steps = 0 #2000 #2000
    set Use full A block as preconditioner              = true
-   set Linear solver A block tolerance                 = 1e-1
+   set Linear solver A block tolerance                 = 1e-2
+#   set Linear solver S block tolerance                 = 1e-4
   end
 end
 
@@ -47,29 +49,27 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement = 4
-  set Initial global refinement = 4
-  set Minimum refinement level = 4
+  set Initial adaptive refinement = 0 #1
+  set Initial global refinement = 3 # 2
+  set Minimum refinement level = 1
   set Refinement fraction = 0.4
   set Coarsening fraction = 0.05
   set Skip setup initial conditions on initial refinement = true
   set Skip solvers on initial refinement = true
 
 #  set Strategy = nonadiabatic temperature, composition, viscosity, minimum refinement function
-  set Strategy = density, minimum refinement function, boundary, viscosity
+  set Strategy = boundary
   
   subsection Boundary
     set Boundary refinement indicators = top
   end
 
-
-  subsection Minimum refinement function
-    set Function expression = if(depth > 660000, 4, if(depth > 80000, 6 ,8))
+#  subsection Minimum refinement function
+#    set Function expression = if(depth > 660000, 4, if(depth > 80000, 6 ,8))
 #    set Function expression = if(depth > 700000,4, 8)
-    set Variable names = depth,y,z
-  end
+#    set Variable names = depth,y,z
+#  end
 end
-
 
 
 subsection Compositional fields
@@ -185,7 +185,6 @@ subsection Material model
    set Thermal expansion coefficient               = 2.0e-5
    set Use paleowattmeter                          = true
    set Viscosity                                   = 1e22
-   set Use GyPSuM density                          = false
 
    set Maximum temperature dependence of viscosity = 1e6
    set Phase transition Clapeyron slopes           = 0,0,0

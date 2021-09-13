@@ -177,9 +177,10 @@ namespace aspect
     }
 
 
+
     template <int dim>
-    double
-    EquilibriumGrainSize<dim>::compute_viscosity_scaling (const double depth) const
+    std::pair< double, unsigned int>
+    EquilibriumGrainSize<dim>::get_reference_viscosity (const double depth) const
     {
       Assert(average_viscosity_profile.size() != 0,
              ExcMessage("The average viscosity profile has not yet been computed. "
@@ -217,9 +218,21 @@ namespace aspect
       // the largest depth in the profile).
       const double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
 
-      const double average_viscosity = std::pow(10, average_viscosity_profile[depth_index]);
+      return std::make_pair (reference_viscosity, depth_index);
 
-      return reference_viscosity / average_viscosity;
+    }
+
+
+
+    template <int dim>
+    double
+    EquilibriumGrainSize<dim>::compute_viscosity_scaling (const double depth) const
+    {
+      const std::pair<double, unsigned int> reference_viscosity_and_depth_index = get_reference_viscosity (depth);
+
+      const double average_viscosity = std::pow(10, average_viscosity_profile[reference_viscosity_and_depth_index.second]);
+
+      return reference_viscosity_and_depth_index.first / average_viscosity;
     }
 
 
@@ -235,6 +248,11 @@ namespace aspect
       UnscaledViscosityAdditionalOutputs<dim> *unscaled_viscosity_out =
         out.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim> >();
 
+      const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
+      this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
+
+      const unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
+
       const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
       const unsigned int fault_index = (use_faults)
                                        ?
@@ -244,6 +262,8 @@ namespace aspect
 
       for (unsigned int i=0; i<in.n_evaluation_points(); ++i)
         {
+          const double depth = this->get_geometry_model().depth(in.position[i]);
+
           // Use the adiabatic pressure instead of the real one, because of oscillations
           const double pressure = (this->get_adiabatic_conditions().is_initialized())
                                   ?
@@ -254,7 +274,12 @@ namespace aspect
           Assert(pressure >= 0.0,
                  ExcMessage("Pressure has to be non-negative for the viscosity computation. Instead it is: "
                             + std::to_string(pressure)));
-
+          
+          double lithosphere_thickness = 0.;
+          // Get variable lithosphere using an adiabatic boundary ascii file
+          if (this->get_adiabatic_conditions().is_initialized())
+            lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
+ 
           const unsigned int phase_index = get_phase_index(in.position[i], in.temperature[i], pressure);
 
           // Computed according to equation (7) in Dannberg et al., 2016, using the paleowattmeter grain size.
@@ -330,18 +355,20 @@ namespace aspect
 
 
           if ( (use_depth_dependent_viscosity) && (unscaled_viscosity_out != nullptr) )
-            unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]);
+            unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]); 
+
+          const double viscosity_scaling_below_this_depth = 60e3;
 
           // Scale viscosity so that laterally averaged viscosity == reference viscosity profile
-          // Only scale if average viscosity is already available.
-          if (average_viscosity_profile.size() != 0)
+          // Only scale if average viscosity is already available and we are below a specified depth.
+          if (average_viscosity_profile.size() != 0 && depth > viscosity_scaling_below_this_depth)
             out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
 
           // Ensure we respect viscosity bounds
           out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
 
           // If using faults, use the composition value to compute the viscosity instead
-          if (use_faults && in.composition[i][fault_index] > 0.)
+          if (use_faults && in.composition[i][fault_index] > 0. && depth <= lithosphere_thickness)
             {
               const double background_viscosity_log = std::log10(out.viscosities[i]);
               out.viscosities[i] = std::pow(10,
@@ -363,6 +390,10 @@ namespace aspect
                 else
                   prescribed_field_out->prescribed_field_outputs[i][c] = 0.;
               }
+
+
+          if (this->get_nonlinear_iteration() == 0)
+            out.viscosities[i] = get_reference_viscosity(depth).first;
         }
       return;
     }
