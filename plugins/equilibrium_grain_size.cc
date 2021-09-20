@@ -839,9 +839,11 @@ namespace aspect
               const double mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
               double initial_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
 
+              const Point<dim> surface_point = this->get_geometry_model().representative_point(0.0);
+
               if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
                 initial_temperature += this->get_adiabatic_conditions().temperature(in.position[i]) -
-			this->get_adiabatic_surface_temperature();
+			this->get_adiabatic_conditions().temperature(surface_point);
 
               const double sigmoid_width = 2.e4;
               const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
