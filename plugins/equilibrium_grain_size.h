@@ -374,6 +374,17 @@ namespace aspect
         bool use_faults;
 
         /**
+         * Parameter that determines the viscosity of faults or plate boundaries.
+         */
+        double faults_viscosity;
+
+        /**
+         * Parameter that determines the viscosity asthenosphere. By default, use
+         * the value from reference viscosity profile.
+         */
+        double asthenosphere_viscosity;
+
+        /**
          * Approximate lithosphere thickness used to separate the regions of
          * temperature derived from seismic tomography and linear temperature
          * gradient.

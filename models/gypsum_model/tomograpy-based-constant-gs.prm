@@ -1,8 +1,8 @@
 set Dimension = 3
-set World builder file                     = ../../input_data/geodynamic_world_builder_smooth_faults_deep.json
+set World builder file = ../../input_data/world_builder_nuvel_boundaries-best.json
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
 set Use years in output instead of seconds = true
-set Output directory                       = itrf_stein_tutu_scaling_deep-smooth-faults-3
+set Output directory = itrf_tutu_scaling_nuvel_fault_1e20_asth_1e20_5_2
 set Max nonlinear iterations               = 10
 set Nonlinear solver tolerance             = 1e-4
 set Nonlinear solver scheme                = iterated Advection and Stokes #single Advection, single Stokes #
@@ -15,7 +15,7 @@ subsection Solver parameters
   subsection Stokes solver parameters
    set Linear solver tolerance                         = 1e-4
    set Stokes solver type                              = block GMG
-   set Number of cheap Stokes solver steps             = 5000
+   set Number of cheap Stokes solver steps             = 20000
    set GMRES solver restart length                     = 1000
    set Maximum number of expensive Stokes solver steps = 0 #2000 #2000
    set Use full A block as preconditioner              = true
@@ -49,8 +49,8 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement = 0 #1
-  set Initial global refinement = 3 # 2
+  set Initial adaptive refinement = 2 #1
+  set Initial global refinement = 5 # 2
   set Minimum refinement level = 1
   set Refinement fraction = 0.4
   set Coarsening fraction = 0.05
@@ -58,17 +58,17 @@ subsection Mesh refinement
   set Skip solvers on initial refinement = true
 
 #  set Strategy = nonadiabatic temperature, composition, viscosity, minimum refinement function
-  set Strategy = boundary
+  set Strategy = boundary, minimum refinement function
   
   subsection Boundary
-    set Boundary refinement indicators = top
+    set Boundary refinement indicators = top, bottom
   end
 
-#  subsection Minimum refinement function
-#    set Function expression = if(depth > 660000, 4, if(depth > 80000, 6 ,8))
+  subsection Minimum refinement function
+    set Function expression = if(depth > 660000, 4, if(depth > 80000, 6 , 7))
 #    set Function expression = if(depth > 700000,4, 8)
-#    set Variable names = depth,y,z
-#  end
+    set Variable names = depth,y,z
+  end
 end
 
 
@@ -197,10 +197,12 @@ subsection Material model
    set Use depth dependent viscosity               = true
    set Use depth dependent density scaling         = true
    set Use faults                                  = true
+set Faults viscosity = 1e20
+set Asthenosphere viscosity = 1e20
 
    subsection Ascii data model
      set Data directory                            = ../../input_data/
-     set Data file name                            = steinberger_source.txt #becker_viscosity_reducedT.txt #stein_smooth.txt  #simple_visc.txt #becker_viscosity.txt 
+     set Data file name                            = steinberger_source-1.txt #becker_viscosity_reducedT.txt #stein_smooth.txt  #simple_visc.txt #becker_viscosity.txt 
    end
 
    subsection Density velocity scaling
@@ -218,13 +220,15 @@ end
 
 
 subsection Postprocess
-  set List of postprocessors         = boundary velocity residual statistics, velocity statistics, visualization, Stokes residual, heat flux statistics, memory statistics, depth average
+  set List of postprocessors         = boundary velocity residual statistics, velocity boundary statistics, visualization, Stokes residual, heat flux statistics, memory statistics, depth average
   
   subsection Visualization
     set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, heat flux map, strain rate, named additional outputs, boundary velocity residual
     set Output format  = vtu  
+    set Time between graphical output = 0
+    set Number of grouped files = 32
   end
-  
+
   subsection Boundary velocity residual statistics
     set Use spherical unit vectors = true
     set Use ascii data = true
@@ -237,6 +241,7 @@ subsection Postprocess
     set Time between graphical output = 0
     set Number of zones = 22
 #    set Depth boundaries of zones = 0, 4.1e5, 5.2e5, 6.6e5, 2.871e6
-    set Depth boundaries of zones = 0.00000e+00,1.00025e+05,2.19799e+05,3.40211e+05,4.10292e+05,5.19874e+05,6.60036e+05,8.00198e+05,9.39722e+05,1.07988e+06,1.22005e+06,1.36021e+06,1.49973e+06,1.63990e+06,1.78006e+06,1.92022e+06,2.05974e+06,2.19991e+06,2.34007e+06,2.48023e+06,2.61976e+06,2.75992e+06,2.90008e+06 
+    set Depth boundaries of zones = 0.00000e+00,1.00025e+05,3e+05,3.40211e+05,4.10292e+05,5.19874e+05,6.60036e+05,8.00198e+05,9.39722e+05,1.07988e+06,1.22005e+06,1.36021e+06,1.49973e+06,1.63990e+06,1.78006e+06,1.92022e+06,2.05974e+06,2.19991e+06,2.34007e+06,2.48023e+06,2.61976e+06,2.75992e+06,2.90008e+06
   end
 end
+
