@@ -418,6 +418,17 @@ namespace aspect
         bool use_faults;
 
         /**
+         * Parameter that determines the viscosity of faults or plate boundaries.
+         */
+        double faults_viscosity;
+
+        /**
+         * Parameter that determines the viscosity asthenosphere. By default, use
+         * the value from reference viscosity profile.
+         */
+        double asthenosphere_viscosity;
+
+        /**
          * Parameter used to decribe the uppermost mantle based on Tutu (2018).
          */
         double uppermost_mantle_thickness;
