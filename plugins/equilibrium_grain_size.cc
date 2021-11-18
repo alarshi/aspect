@@ -246,7 +246,12 @@ namespace aspect
       // in the reference profile instead of the actual depth. This makes the profile piecewise
       // constant. This will be specific to the viscosity profile used (and ignore the entry with
       // the largest depth in the profile).
-      const double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
+      double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
+
+      // This parameter is only because we change the asthenosphere viscosity in our models.
+      // By default, it is set to the value in reference steinberger profile.
+      if (depth_index == 1)
+        reference_viscosity = asthenosphere_viscosity;
 
       return std::make_pair (reference_viscosity, depth_index);
 
@@ -413,11 +418,11 @@ namespace aspect
           out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
 
           // If using faults, use the composition value to compute the viscosity instead
-          if (use_faults && in.composition[i][fault_index] > 0. && depth <= lithosphere_thickness)
+          if (use_faults && in.composition[i][fault_index] > 0. && depth <= lithosphere_thickness + 40e3)
             {
               const double background_viscosity_log = std::log10(out.viscosities[i]);
               out.viscosities[i] = std::pow(10,
-                                            20. * in.composition[i][fault_index]
+                                            std::log10(faults_viscosity) * in.composition[i][fault_index]
                                             + background_viscosity_log * (1. - in.composition[i][fault_index]));
             }
 
@@ -1250,6 +1255,14 @@ namespace aspect
                              Patterns::Bool (),
                              "This parameter value determines if we want to use the faults/plate boundaries as "
                              "a composition field, currently input as a world builder file.");
+          prm.declare_entry ("Faults viscosity", "1e20",
+                             Patterns::Double(0),
+                             "This parameter value determines the viscosity of faults or plate boundaries. "
+                             "We would want to have weak faults/plate boundaries relative to the surrounding "
+			     "lithosphere.");
+          prm.declare_entry ("Asthenosphere viscosity", "2.4e20",
+                             Patterns::Double(0),
+                             "This parameter value determines the asthenosphere layer in the reference file.");
           prm.declare_entry ("Use depth dependent density scaling", "false",
                              Patterns::Bool (),
                              "This parameter value determines if we want to use depth-dependent scaling files "
