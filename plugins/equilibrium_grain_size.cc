@@ -1455,6 +1455,12 @@ namespace aspect
                                  (prm.get ("Material file names"));
           derivatives_file_names = Utilities::split_string_list
                                    (prm.get ("Derivatives file names"));
+          use_table_properties = prm.get_bool ("Use table properties");
+          use_depth_dependent_viscosity = prm.get_bool ("Use depth dependent viscosity");
+          use_faults = prm.get_bool ("Use faults");
+          faults_viscosity = prm.get_double ("Faults viscosity");
+          asthenosphere_viscosity = prm.get_double ("Asthenosphere viscosity");
+          use_depth_dependent_rho_vs = prm.get_bool("Use depth dependent density scaling");
 
           use_table_properties                    = prm.get_bool ("Use table properties");
           use_depth_dependent_viscosity           = prm.get_bool ("Use depth dependent viscosity");
@@ -1463,6 +1469,8 @@ namespace aspect
           use_depth_dependent_dT_vs               = prm.get_bool ("Use depth dependent temperature scaling");
           use_depth_dependent_thermal_expansivity = prm.get_bool ("Use thermal expansivity profile");
           uppermost_mantle_thickness              = prm.get_double ("Uppermost mantle thickness");
+          faults_viscosity                        = prm.get_double ("Faults viscosity");
+          asthenosphere_viscosity                 = prm.get_double ("Asthenosphere viscosity");
 
           // Parse all depth-dependent parameters
           if (use_depth_dependent_viscosity)
