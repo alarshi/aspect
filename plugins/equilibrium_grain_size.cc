@@ -296,6 +296,8 @@ namespace aspect
       UnscaledViscosityAdditionalOutputs<dim> *unscaled_viscosity_out =
         out.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim> >();
 
+      const unsigned int craton_composition = this->introspection().compositional_index_for_name("continents");
+
       const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
         this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
 
@@ -427,6 +429,10 @@ namespace aspect
                                             std::log10(fault_viscosity) * in.composition[i][fault_index]
                                             + background_viscosity_log * (1. - in.composition[i][fault_index]));
             }
+
+          // If using cratons, use strong viscosity
+          if (in.composition[i][craton_composition] > 0. && depth <= lithosphere_thickness + 40e3)
+            out.viscosities[i] = 1e26;
 
           Assert(out.viscosities[i] > 0,
                  ExcMessage("Viscosity has to be positive. Instead it is: " + std::to_string(out.viscosities[i])));
@@ -854,6 +860,7 @@ namespace aspect
       // Determine some properties that are constant for all points
       const unsigned int vs_anomaly_index = this->introspection().compositional_index_for_name("vs_anomaly");
       const unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
+      const unsigned int craton_composition = this->introspection().compositional_index_for_name("continents");
 
       const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
         this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
