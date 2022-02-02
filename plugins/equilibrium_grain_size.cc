@@ -225,8 +225,8 @@ namespace aspect
     EquilibriumGrainSize<dim>::compute_viscosity_scaling (const double depth) const
     {
       Assert(average_viscosity_profile.size() != 0,
-        ExcMessage("The average viscosity profile has not yet been computed. "
-                  "Unable to scale viscosities"));
+             ExcMessage("The average viscosity profile has not yet been computed. "
+                        "Unable to scale viscosities"));
 
       const std::pair<double, unsigned int> reference_viscosity_and_depth_index = get_reference_viscosity (depth);
 
@@ -361,7 +361,7 @@ namespace aspect
 
           // Scale viscosity so that laterally averaged viscosity == reference viscosity profile
           // Only scale if average viscosity is already available and we are below a specified depth.
-          if (average_viscosity_profile.size() != 0 && depth > viscosity_scaling_below_this_depth && this->get_nonlinear_iteration() > 0)
+          if (average_viscosity_profile.size() != 0 && depth > viscosity_scaling_below_this_depth)
             out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
 
           // Ensure we respect viscosity bounds
