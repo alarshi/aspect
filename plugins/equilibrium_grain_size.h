@@ -185,6 +185,7 @@ namespace aspect
         std::vector<double> diffusion_activation_volume;
         std::vector<double> diffusion_creep_prefactor;
         std::vector<double> diffusion_creep_grain_size_exponent;
+
         /**
          * Reference viscosity profile coordinates, and the corresponding viscosity.
          */
@@ -195,6 +196,7 @@ namespace aspect
          * A reference profile for density scaling.
          */
         Utilities::AsciiDataProfile<dim> rho_vs_depth_profile;
+
         /**
          * The column indices of the density scaling column in the ascii profile file.
          */

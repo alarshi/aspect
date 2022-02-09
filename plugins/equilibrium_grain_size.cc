@@ -104,11 +104,15 @@ namespace aspect
     EquilibriumGrainSize<dim>::initialize()
     {
       // Get reference viscosity profile from the ascii data
-      reference_viscosity_coordinates = reference_viscosity_profile->get_interpolation_point_coordinates();
+      if (use_depth_dependent_viscosity)
+        reference_viscosity_coordinates = reference_viscosity_profile->get_interpolation_point_coordinates();
 
       // Get column index for density scaling
-      rho_vs_depth_profile.initialize(this->get_mpi_communicator());
-      density_scaling_index = rho_vs_depth_profile.get_column_index_from_name("density_scaling");
+      if (use_depth_dependent_rho_vs)
+        {
+          rho_vs_depth_profile.initialize(this->get_mpi_communicator());
+          density_scaling_index = rho_vs_depth_profile.get_column_index_from_name("density_scaling");
+        }
 
       // Get column for crustal depths
       std::set<types::boundary_id> surface_boundary_set;
@@ -157,22 +161,26 @@ namespace aspect
     void
     EquilibriumGrainSize<dim>::update()
     {
-      std::vector<std::unique_ptr<internal::FunctorBase<dim> > > lateral_averaging_properties;
-      lateral_averaging_properties.push_back(std::make_unique<internal::FunctorDepthAverageUnscaledViscosity<dim>>());
+      if (use_depth_dependent_viscosity)
+        {
+          std::vector<std::unique_ptr<internal::FunctorBase<dim> > > lateral_averaging_properties;
+          lateral_averaging_properties.push_back(std::make_unique<internal::FunctorDepthAverageUnscaledViscosity<dim>>());
 
-      std::vector<std::vector<double>> averages =
-                                      this->get_lateral_averaging().compute_lateral_averages(reference_viscosity_coordinates,
-                                          lateral_averaging_properties);
+          std::vector<std::vector<double>> averages =
+                                          this->get_lateral_averaging().compute_lateral_averages(reference_viscosity_coordinates,
+                                              lateral_averaging_properties);
 
-      average_viscosity_profile.swap(averages[0]);
+          average_viscosity_profile.swap(averages[0]);
 
-      for (const auto &lateral_viscosity_average: average_viscosity_profile)
-        AssertThrow(numbers::is_finite(lateral_viscosity_average),
-                    ExcMessage("In computing depth averages, there is at"
-                               " least one depth band that does not have"
-                               " any quadrature points in it."
-                               " Consider reducing number of depth layers"
-                               " for averaging."));
+          for (const auto &lateral_viscosity_average: average_viscosity_profile)
+            AssertThrow(numbers::is_finite(lateral_viscosity_average),
+                        ExcMessage("In computing depth averages, there is at"
+                                   " least one depth band that does not have"
+                                   " any quadrature points in it."
+                                   " Consider reducing number of depth layers"
+                                   " for averaging."));
+        }
+
       initialized = true;
     }
 
@@ -353,16 +361,18 @@ namespace aspect
                 }
             }
 
+          if (use_depth_dependent_viscosity)
+            {
+              if (unscaled_viscosity_out != nullptr)
+                unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]);
 
-          if ( (use_depth_dependent_viscosity) && (unscaled_viscosity_out != nullptr) )
-            unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]); 
+              const double viscosity_scaling_below_this_depth = 60e3;
 
-          const double viscosity_scaling_below_this_depth = 60e3;
-
-          // Scale viscosity so that laterally averaged viscosity == reference viscosity profile
-          // Only scale if average viscosity is already available and we are below a specified depth.
-          if (average_viscosity_profile.size() != 0 && depth > viscosity_scaling_below_this_depth)
-            out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
+              // Scale viscosity so that laterally averaged viscosity == reference viscosity profile
+              // Only scale if average viscosity is already available and we are below a specified depth.
+              if (average_viscosity_profile.size() != 0 && depth > viscosity_scaling_below_this_depth)
+                out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
+            }
 
           // Ensure we respect viscosity bounds
           out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
@@ -391,8 +401,7 @@ namespace aspect
                   prescribed_field_out->prescribed_field_outputs[i][c] = 0.;
               }
 
-
-          if (this->get_nonlinear_iteration() == 0)
+          if (this->get_nonlinear_iteration() == 0 && use_depth_dependent_viscosity)
             out.viscosities[i] = get_reference_viscosity(depth).first;
         }
       return;
@@ -777,7 +786,7 @@ namespace aspect
     evaluate(const typename Interface<dim>::MaterialModelInputs &in, typename Interface<dim>::MaterialModelOutputs &out) const
     {
       // Determine some properties that are constant for all points
-      const unsigned int vs_composition_index =  this->introspection().compositional_index_for_name("Vs");
+      const unsigned int vs_anomaly_index = this->introspection().compositional_index_for_name("vs_anomaly");
       const unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
 
       const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
@@ -796,14 +805,12 @@ namespace aspect
                                   :
                                   in.pressure[i];
 
-          // vs_index + 1: vs_anomaly in m/sec
-          const double delta_log_vs = in.composition[i][vs_composition_index + 1];
+          const double delta_log_vs = in.composition[i][vs_anomaly_index];
           double density_anomaly = delta_log_vs * 0.15; // Becker (2006) scaling factor
 
           out.thermal_conductivities[i] = k_value;
           out.compressibilities[i] = compressibility(in.temperature[i], pressure, in.composition[i], in.position[i]);
           out.specific_heat[i] = reference_specific_heat;
-          out.thermal_expansion_coefficients[i] = thermal_alpha;
 
           for (unsigned int c=0; c<in.composition[i].size(); ++c)
             out.reaction_terms[i][c] = 0.0;
@@ -822,55 +829,74 @@ namespace aspect
           double crustal_thickness = 0.;
           double lithosphere_thickness = 0.;
 
+          const double depth = this->get_geometry_model().depth(in.position[i]);
+
+          double initial_temperature = this->get_adiabatic_surface_temperature();
+          double reference_temperature = this->get_adiabatic_surface_temperature();
+
           // Get variable lithosphere and crustal depths using an adiabatic boundary ascii file
           if (this->get_adiabatic_conditions().is_initialized())
             {
               lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
               crustal_thickness = crustal_boundary_depth.get_data_component(surface_boundary_id, in.position[i], 0);
+
+              // This does not work when it is called before the adiabatic conditions are initialized, because
+              // the AsciiDataBoundary plugin needs the time, which is not yet initialized at that point.
+              initial_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
+              reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
             }
 
-          const double depth = this->get_geometry_model().depth(in.position[i]);
-          double new_temperature = in.temperature[i];
+          // compute the temperature below the asthenosphere using the parameters given in the table by Becker (2006).
+          const double mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
+
+          const double sigmoid_width = 2.e4;
+          const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
+
+          const double new_temperature = initial_temperature + (mantle_temperature - initial_temperature) * sigmoid;
 
           if (PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >())
-            {
-              const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
-              // temperature modified by AS using the parameters given in the table by Becker, (2006).
-              const double mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
-              double initial_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
-
-              const Point<dim> surface_point = this->get_geometry_model().representative_point(0.0);
-
-              if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
-                initial_temperature += this->get_adiabatic_conditions().temperature(in.position[i]) -
-			this->get_adiabatic_conditions().temperature(surface_point);
-
-              const double sigmoid_width = 2.e4;
-              const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
-
-              new_temperature = initial_temperature + (mantle_temperature - initial_temperature) * sigmoid;
-
-              prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
-            }
+            prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
 
           // Reference temperature is 20 C in Tutu et al., (2018).
           double deltaT  = new_temperature - 293.;
           // Density computation
           if (depth <= crustal_thickness)
+          {
             out.densities[i] = 2.85e3 * ( 1. - 2.7e-5 * deltaT + pressure/6.3e10 );
+            out.thermal_expansion_coefficients[i] = 2.7e-5;
+            out.compressibilities[i] = 1./6.3e10;
+          }
           else if (depth > crustal_thickness && depth <= lithosphere_thickness)
+          {
             out.densities[i] = 3.27e3 * ( 1. - 3e-5 * deltaT + pressure/12.2e10 );
+            out.thermal_expansion_coefficients[i] = 3e-5;
+            out.compressibilities[i] = 1./12.2e10;
+          }
           else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
+          {
             out.densities[i] = 3.3e3 * ( 1. - 3e-5 * deltaT + pressure/12.2e10 );
+            out.thermal_expansion_coefficients[i] = 3e-5;
+            out.compressibilities[i] = 1./12.2e10;
+          }
           else
             {
               // Densities below 300 km are computed using the scaling relationship from the velocity anomalies
+        	  double density_vs_scaling;
               if (use_depth_dependent_rho_vs)
-                density_anomaly = delta_log_vs * rho_vs_depth_profile.get_data_component(Point<1>(depth), density_scaling_index);
+            	density_vs_scaling = rho_vs_depth_profile.get_data_component(Point<1>(depth), density_scaling_index);
               else
                 // Values from Becker [2006], GJI
-                density_anomaly = delta_log_vs * 0.15;
-              out.densities[i] = this->get_adiabatic_conditions().density(in.position[i]) * (1. + density_anomaly);
+            	density_vs_scaling = 0.15;
+
+              density_anomaly = delta_log_vs * density_vs_scaling;
+        	  const double reference_density = this->get_adiabatic_conditions().is_initialized()
+                                               ?
+        		                               this->get_adiabatic_conditions().density(in.position[i])
+											   :
+											   reference_rho;
+
+              out.densities[i] = reference_density * (1. + density_anomaly);
+              out.thermal_expansion_coefficients[i] = density_vs_scaling / (4.2 * 1785.);
             }
         }
     }
