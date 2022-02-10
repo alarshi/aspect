@@ -46,11 +46,11 @@ DEAL_II_INITIALIZE_CACHED_VARIABLES()
 SET(TARGET "equilibrium_grain_size")
 PROJECT(${TARGET})
 
-ADD_LIBRARY(${TARGET} SHARED equilibrium_grain_size.cc equilibrium_grain_size.h)
+ADD_LIBRARY(${TARGET} SHARED equilibrium_grain_size.cc equilibrium_grain_size.h reference_profile.h reference_profile.cc)
 ASPECT_SETUP_PLUGIN(${TARGET})
 
-SET(TARGET "reference_profile")
-PROJECT(${TARGET})
+# SET(TARGET "reference_profile")
+# PROJECT(${TARGET})
 
-ADD_LIBRARY(${TARGET} SHARED reference_profile.h reference_profile.cc)
-ASPECT_SETUP_PLUGIN(${TARGET})
+# ADD_LIBRARY(${TARGET} SHARED reference_profile.h reference_profile.cc)
+# ASPECT_SETUP_PLUGIN(${TARGET})
