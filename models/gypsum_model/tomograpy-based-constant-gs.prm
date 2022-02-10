@@ -205,7 +205,7 @@ subsection Material model
 
    subsection Density velocity scaling
      set Data directory                            = ../../input_data/
-     set Data file name                            = depth_rho_vs_tutu.txt
+     set Data file name                            = rho_vs_scaling.txt
    end
 
    subsection Crustal depths
