@@ -1,3 +1,8 @@
+# Test data for ascii data reference state
+# Only next line is parsed in format: [nx] because of keyword "POINTS:"
+# POINTS: 50
+# Columns: depth (m), density_ratio
+depth density_scaling
 72333.64144 0.21731
 103648.68369 0.22273
 151686.02834 0.21943
