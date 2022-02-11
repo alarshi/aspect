@@ -218,6 +218,16 @@ namespace aspect
         unsigned int thermal_expansivity_column_index;
 
         /**
+         * A reference profile for temperatura scaling. Values are from Steinberger and
+         * Calderwood, 2006.
+         */
+        Utilities::AsciiDataProfile<dim> dT_vs_depth_profile;
+        /**
+         * The column indices of the density scaling column in the ascii profile file.
+         */
+        unsigned int temperature_scaling_index;
+
+        /**
          * An object of ascii data boundary to input crustal depths.
          */
         Utilities::AsciiDataBoundary<dim> crustal_boundary_depth;
@@ -394,6 +404,12 @@ namespace aspect
          * from an ascii data file.
         */
         bool use_depth_dependent_thermal_expansivity;
+
+        /**
+         * Parameter value that determines whether to read the temperature scaling with depth
+         * from an ascii data file.
+        */
+        bool use_depth_dependent_dT_vs;
 
         /**
          * Parameter that determines if faults or plate boundaries are used as another
