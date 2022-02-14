@@ -881,23 +881,20 @@ namespace aspect
               const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
               
               if (use_depth_dependent_dT_vs)
-              {
-                // We use the dlnvs/dT profile from Steinberger and Calderbood (2006). The values in profile are in units -1e-5/K .
-                mantle_temperature = reference_temperature - 
-                                     delta_log_vs * 1e5 / dT_vs_depth_profile.get_data_component(Point<1>(depth), temperature_scaling_index);
-              }
-                
+                {
+                  // We use the dlnvs/dT profile from Steinberger and Calderbood (2006). The values in profile are in units -1e-5/K .
+                  mantle_temperature = reference_temperature -
+                                       delta_log_vs * 1e5 / dT_vs_depth_profile.get_data_component(Point<1>(depth), temperature_scaling_index);
+                }
+
               else
-              {
-                // The parameters given in the table by Becker (2006).
-                mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
-              }
- 
+                {
+                  // compute the temperature below the asthenosphere using the parameters given in the table by Becker (2006).
+                  mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
+                }
+
               double initial_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
-
-              // compute the temperature below the asthenosphere using the parameters given in the table by Becker (2006).
-              const double mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
-
+              
               const double sigmoid_width = 2.e4;
               const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
 
