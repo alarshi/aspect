@@ -1258,7 +1258,7 @@ namespace aspect
           Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../../input_data/", "dT_vs_scaling.txt", "Temperature velocity scaling");
 
           // Depth-dependent thermal expansivity parameters
-          Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../input_data/", "thermal_expansivity_steinberger_calderwood.txt", "Thermal expansivity profile");
+          Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../../input_data/", "thermal_expansivity_steinberger_calderwood.txt", "Thermal expansivity profile");
 
           // Crustal boundary depths parameters
           Utilities::AsciiDataBoundary<dim>::declare_parameters(prm,  "../../input_data/crust1.0/", "crustal_structure.txt", "Crustal depths");
