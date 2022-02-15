@@ -885,9 +885,9 @@ namespace aspect
           if (PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >())
             prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
 
-          // fill seismic velocities outputs if they exist
           if (use_table_properties)
           {
+            // fill seismic velocities outputs if they exist
             if (SeismicAdditionalOutputs<dim> *seismic_out = out.template get_additional_output<SeismicAdditionalOutputs<dim> >())
               {
                 seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
@@ -898,7 +898,8 @@ namespace aspect
             out.thermal_expansion_coefficients[i] = thermal_expansivity(new_temperature, pressure, in.composition[i], in.position[i]);
             out.compressibilities[i] = compressibility(new_temperature, pressure, in.composition[i], in.position[i]);
           }
-
+          else
+          {
           // Temperature and density of the upper part of the mantle are computed separately,
           // based on Tutu et al. (2018).
           // Reference temperature is 20 C in Tutu et al. (2018).
@@ -907,21 +908,24 @@ namespace aspect
           // Density computation
           if (depth <= crustal_thickness)
           {
-            out.densities[i] = 2.85e3 * ( 1. - 2.7e-5 * deltaT + pressure/6.3e10 );
             out.thermal_expansion_coefficients[i] = 2.7e-5;
             out.compressibilities[i] = 1./6.3e10;
+            out.densities[i] = 2.85e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
+            		                        + pressure * out.compressibilities[i]);
           }
           else if (depth > crustal_thickness && depth <= lithosphere_thickness)
           {
-            out.densities[i] = 3.27e3 * ( 1. - 3e-5 * deltaT + pressure/12.2e10 );
-            out.thermal_expansion_coefficients[i] = 3e-5;
+            out.thermal_expansion_coefficients[i] = 3.e-5;
             out.compressibilities[i] = 1./12.2e10;
+            out.densities[i] = 3.27e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
+            		                        + pressure * out.compressibilities[i]);
           }
           else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
           {
-            out.densities[i] = 3.3e3 * ( 1. - 3e-5 * deltaT + pressure/12.2e10 );
-            out.thermal_expansion_coefficients[i] = 3e-5;
+            out.thermal_expansion_coefficients[i] = 3.e-5;
             out.compressibilities[i] = 1./12.2e10;
+            out.densities[i] = 3.3e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
+            		                       + pressure * out.compressibilities[i]);
           }
           else
             {
@@ -947,6 +951,7 @@ namespace aspect
               else
             	out.thermal_expansion_coefficients[i] = thermal_alpha;
             }
+          }
         }
     }
 

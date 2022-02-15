@@ -1,4 +1,7 @@
-# Test data for ascii data reference state
+# Thermal expansivity profile M2 from Steinberger, B. and Calderwood, A.R., 2006. 
+# Models of large-scale viscous flow in the Earth's mantle with constraints from 
+# mineral physics and surface observations. Geophysical Journal International, 
+# 167(3), pp.1461-1481. https://doi.org/10.1111/j.1365-246X.2006.03131.x
 # Only next line is parsed in format: [nx] because of keyword "POINTS:"
 # POINTS: 2890
 # Columns: depth (m), thermal_expansivity (1/K)

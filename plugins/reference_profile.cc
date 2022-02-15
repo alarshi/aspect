@@ -89,7 +89,7 @@ namespace aspect
                                      1 :
                                      -1;
 
-      // We want tu se different valuesfor the densities in the uppermost vs the lower part of the mantle
+      // We want to use different values for the densities in the uppermost vs the lower part of the mantle.
       double uppermost_mantle_thickness = 0.0;
       if (Plugins::plugin_type_matches<const MaterialModel::EquilibriumGrainSize<dim>>(this->get_material_model()))
         {
