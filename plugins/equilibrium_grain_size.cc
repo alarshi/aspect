@@ -120,9 +120,11 @@ namespace aspect
           thermal_expansivity_column_index = thermal_expansivity_profile.get_column_index_from_name("thermal_expansivity");
         }
 
-      // Get column index for temperature scaling
-      dT_vs_depth_profile.initialize(this->get_mpi_communicator());
-      temperature_scaling_index = dT_vs_depth_profile.get_column_index_from_name("temperature_scaling");
+       if (use_depth_dependent_dT_vs)
+        {
+          dT_vs_depth_profile.initialize(this->get_mpi_communicator());
+          temperature_scaling_index = dT_vs_depth_profile.get_column_index_from_name("temperature_scaling");
+        }     
 
       // Get column for crustal depths
       std::set<types::boundary_id> surface_boundary_set;
@@ -882,9 +884,9 @@ namespace aspect
               
               if (use_depth_dependent_dT_vs)
                 {
-                  // We use the dlnvs/dT profile from Steinberger and Calderbood (2006). The values in profile are in units -1e-5/K .
-                  mantle_temperature = reference_temperature -
-                                       delta_log_vs * 1e5 / dT_vs_depth_profile.get_data_component(Point<1>(depth), temperature_scaling_index);
+                  // We use the dlnvs/dT profile from Steinberger and Calderwood (2006). The values in profile are in units 1/K .
+                  mantle_temperature = reference_temperature +
+                                       delta_log_vs * dT_vs_depth_profile.get_data_component(Point<1>(depth), temperature_scaling_index);
                 }
 
               else
@@ -892,8 +894,6 @@ namespace aspect
                   // compute the temperature below the asthenosphere using the parameters given in the table by Becker (2006).
                   mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
                 }
-
-              double initial_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
               
               const double sigmoid_width = 2.e4;
               const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
