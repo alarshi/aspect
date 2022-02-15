@@ -114,7 +114,7 @@ namespace aspect
           const double radius = 6378137.;
 
           double density = reference_profile.get_data_component(Point<1>(radius - model_depths),density_index);
-          
+
           if (i==0)
             {
               if (!use_surface_condition_function)
@@ -130,11 +130,11 @@ namespace aspect
             }
           else
             {
-             // We only want to use the PREM densities in the part of the model that also
-             // uses seismic velocities to determine the densities. Otherwise, use the density
-             // computed by the material model.
-             if (model_depths < uppermost_mantle_thickness)
-               density = out.densities[0];
+              // We only want to use the PREM densities in the part of the model that also
+              // uses seismic velocities to determine the densities. Otherwise, use the density
+              // computed by the material model.
+              if (model_depths < uppermost_mantle_thickness)
+                density = out.densities[0];
 
               const double alpha = out.thermal_expansion_coefficients[0];
               // Handle the case that cp is zero (happens in simple Stokes test problems like sol_cx). By setting
@@ -189,7 +189,7 @@ namespace aspect
           // Make sure we get the first point of the profile right. We can only assign the correct
           // value after the material model has been evaluated.
           if (model_depths < uppermost_mantle_thickness && i==0)
-        	densities[i] = out.densities[0];
+            densities[i] = out.densities[0];
         }
 
       if (gravity_direction == 1 && this->get_surface_pressure() >= 0)

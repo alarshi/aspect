@@ -91,7 +91,7 @@ namespace aspect
          * properties are computed based on the model of Tutu et al., 2018.
          */
         double
-		get_uppermost_mantle_thickness () const;
+        get_uppermost_mantle_thickness () const;
 
         /**
          * Compute the scaling factors for each depth layer such that the laterally

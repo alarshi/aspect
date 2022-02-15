@@ -116,8 +116,8 @@ namespace aspect
 
       if (use_depth_dependent_thermal_expansivity)
         {
-    	  thermal_expansivity_profile.initialize(this->get_mpi_communicator());
-    	  thermal_expansivity_column_index = thermal_expansivity_profile.get_column_index_from_name("thermal_expansivity");
+          thermal_expansivity_profile.initialize(this->get_mpi_communicator());
+          thermal_expansivity_column_index = thermal_expansivity_profile.get_column_index_from_name("thermal_expansivity");
         }
 
       // Get column for crustal depths
@@ -240,7 +240,7 @@ namespace aspect
 
     template <int dim>
     double
-	EquilibriumGrainSize<dim>::get_uppermost_mantle_thickness () const
+    EquilibriumGrainSize<dim>::get_uppermost_mantle_thickness () const
     {
       return uppermost_mantle_thickness;
     }
@@ -272,7 +272,7 @@ namespace aspect
         out.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim> >();
 
       const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
-      this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
+        this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
 
       const unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
 
@@ -297,12 +297,12 @@ namespace aspect
           Assert(pressure >= 0.0,
                  ExcMessage("Pressure has to be non-negative for the viscosity computation. Instead it is: "
                             + std::to_string(pressure)));
-          
+
           double lithosphere_thickness = 0.;
           // Get variable lithosphere using an adiabatic boundary ascii file
           if (this->get_adiabatic_conditions().is_initialized())
             lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
- 
+
           const unsigned int phase_index = get_phase_index(in.position[i], in.temperature[i], pressure);
 
           // Computed according to equation (7) in Dannberg et al., 2016, using the paleowattmeter grain size.
@@ -886,72 +886,72 @@ namespace aspect
             prescribed_temperature_out->prescribed_temperature_outputs[i] = new_temperature;
 
           if (use_table_properties)
-          {
-            // fill seismic velocities outputs if they exist
-            if (SeismicAdditionalOutputs<dim> *seismic_out = out.template get_additional_output<SeismicAdditionalOutputs<dim> >())
-              {
-                seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
-                seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
-              }
+            {
+              // fill seismic velocities outputs if they exist
+              if (SeismicAdditionalOutputs<dim> *seismic_out = out.template get_additional_output<SeismicAdditionalOutputs<dim> >())
+                {
+                  seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+                  seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+                }
 
-            out.densities[i] = density(new_temperature, pressure, in.composition[i], in.position[i]);
-            out.thermal_expansion_coefficients[i] = thermal_expansivity(new_temperature, pressure, in.composition[i], in.position[i]);
-            out.compressibilities[i] = compressibility(new_temperature, pressure, in.composition[i], in.position[i]);
-          }
-          else
-          {
-          // Temperature and density of the upper part of the mantle are computed separately,
-          // based on Tutu et al. (2018).
-          // Reference temperature is 20 C in Tutu et al. (2018).
-          double deltaT  = new_temperature - 293.;
-
-          // Density computation
-          if (depth <= crustal_thickness)
-          {
-            out.thermal_expansion_coefficients[i] = 2.7e-5;
-            out.compressibilities[i] = 1./6.3e10;
-            out.densities[i] = 2.85e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
-            		                        + pressure * out.compressibilities[i]);
-          }
-          else if (depth > crustal_thickness && depth <= lithosphere_thickness)
-          {
-            out.thermal_expansion_coefficients[i] = 3.e-5;
-            out.compressibilities[i] = 1./12.2e10;
-            out.densities[i] = 3.27e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
-            		                        + pressure * out.compressibilities[i]);
-          }
-          else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
-          {
-            out.thermal_expansion_coefficients[i] = 3.e-5;
-            out.compressibilities[i] = 1./12.2e10;
-            out.densities[i] = 3.3e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
-            		                       + pressure * out.compressibilities[i]);
-          }
+              out.densities[i] = density(new_temperature, pressure, in.composition[i], in.position[i]);
+              out.thermal_expansion_coefficients[i] = thermal_expansivity(new_temperature, pressure, in.composition[i], in.position[i]);
+              out.compressibilities[i] = compressibility(new_temperature, pressure, in.composition[i], in.position[i]);
+            }
           else
             {
-              // Densities below 300 km are computed using the scaling relationship from the velocity anomalies
-        	  double density_vs_scaling;
-              if (use_depth_dependent_rho_vs)
-            	density_vs_scaling = rho_vs_depth_profile.get_data_component(Point<1>(depth), density_scaling_index);
+              // Temperature and density of the upper part of the mantle are computed separately,
+              // based on Tutu et al. (2018).
+              // Reference temperature is 20 C in Tutu et al. (2018).
+              double deltaT  = new_temperature - 293.;
+
+              // Density computation
+              if (depth <= crustal_thickness)
+                {
+                  out.thermal_expansion_coefficients[i] = 2.7e-5;
+                  out.compressibilities[i] = 1./6.3e10;
+                  out.densities[i] = 2.85e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
+                                               + pressure * out.compressibilities[i]);
+                }
+              else if (depth > crustal_thickness && depth <= lithosphere_thickness)
+                {
+                  out.thermal_expansion_coefficients[i] = 3.e-5;
+                  out.compressibilities[i] = 1./12.2e10;
+                  out.densities[i] = 3.27e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
+                                               + pressure * out.compressibilities[i]);
+                }
+              else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
+                {
+                  out.thermal_expansion_coefficients[i] = 3.e-5;
+                  out.compressibilities[i] = 1./12.2e10;
+                  out.densities[i] = 3.3e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
+                                              + pressure * out.compressibilities[i]);
+                }
               else
-                // Values from Becker [2006], GJI
-            	density_vs_scaling = 0.15;
+                {
+                  // Densities below 300 km are computed using the scaling relationship from the velocity anomalies
+                  double density_vs_scaling;
+                  if (use_depth_dependent_rho_vs)
+                    density_vs_scaling = rho_vs_depth_profile.get_data_component(Point<1>(depth), density_scaling_index);
+                  else
+                    // Values from Becker [2006], GJI
+                    density_vs_scaling = 0.15;
 
-              const double density_anomaly = delta_log_vs * density_vs_scaling;
-        	  const double reference_density = this->get_adiabatic_conditions().is_initialized()
-                                               ?
-        		                               this->get_adiabatic_conditions().density(in.position[i])
-											   :
-											   reference_rho;
+                  const double density_anomaly = delta_log_vs * density_vs_scaling;
+                  const double reference_density = this->get_adiabatic_conditions().is_initialized()
+                                                   ?
+                                                   this->get_adiabatic_conditions().density(in.position[i])
+                                                   :
+                                                   reference_rho;
 
-              out.densities[i] = reference_density * (1. + density_anomaly);
+                  out.densities[i] = reference_density * (1. + density_anomaly);
 
-              if (use_depth_dependent_thermal_expansivity)
-                out.thermal_expansion_coefficients[i] = thermal_expansivity_profile.get_data_component(Point<1>(depth), thermal_expansivity_column_index);
-              else
-            	out.thermal_expansion_coefficients[i] = thermal_alpha;
+                  if (use_depth_dependent_thermal_expansivity)
+                    out.thermal_expansion_coefficients[i] = thermal_expansivity_profile.get_data_component(Point<1>(depth), thermal_expansivity_column_index);
+                  else
+                    out.thermal_expansion_coefficients[i] = thermal_alpha;
+                }
             }
-          }
         }
     }
 
@@ -1410,7 +1410,7 @@ namespace aspect
             rho_vs_depth_profile.parse_parameters(prm, "Density velocity scaling");
 
           if (use_depth_dependent_thermal_expansivity)
-        	thermal_expansivity_profile.parse_parameters(prm, "Thermal expansivity profile");
+            thermal_expansivity_profile.parse_parameters(prm, "Thermal expansivity profile");
 
           crustal_boundary_depth.initialize_simulator (this->get_simulator());
           crustal_boundary_depth.parse_parameters(prm, "Crustal depths");
