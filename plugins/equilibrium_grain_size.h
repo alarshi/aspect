@@ -86,6 +86,14 @@ namespace aspect
         get_reference_viscosity (const double depth) const;
 
         /**
+         * Return the depth of the base of the uppermost mantle. Below that depth,
+         * material properties are based on seismic tomography. Above that depth, material
+         * properties are computed based on the model of Tutu et al., 2018.
+         */
+        double
+        get_uppermost_mantle_thickness () const;
+
+        /**
          * Compute the scaling factors for each depth layer such that the laterally
          * averaged viscosiy in that layer is the same as the reference vicosity.
          */
@@ -185,6 +193,7 @@ namespace aspect
         std::vector<double> diffusion_activation_volume;
         std::vector<double> diffusion_creep_prefactor;
         std::vector<double> diffusion_creep_grain_size_exponent;
+
         /**
          * Reference viscosity profile coordinates, and the corresponding viscosity.
          */
@@ -195,10 +204,18 @@ namespace aspect
          * A reference profile for density scaling.
          */
         Utilities::AsciiDataProfile<dim> rho_vs_depth_profile;
+
         /**
          * The column indices of the density scaling column in the ascii profile file.
          */
         unsigned int density_scaling_index;
+
+
+        /**
+         * A reference profile for the thermal expansivity.
+         */
+        Utilities::AsciiDataProfile<dim> thermal_expansivity_profile;
+        unsigned int thermal_expansivity_column_index;
 
         /**
          * An object of ascii data boundary to input crustal depths.
@@ -297,6 +314,11 @@ namespace aspect
                                 const std::vector<double> &compositional_fields,
                                 const Point<dim> &position) const;
 
+        double thermal_expansivity (const double temperature,
+                                    const double pressure,
+                                    const std::vector<double> &compositional_fields,
+                                    const Point<dim> &position) const;
+
         /**
          * Returns the p-wave velocity as calculated by HeFESTo.
          */
@@ -368,17 +390,16 @@ namespace aspect
         bool use_depth_dependent_rho_vs;
 
         /**
+         * Parameter value that determines whether to read the thermal expansivity
+         * from an ascii data file.
+        */
+        bool use_depth_dependent_thermal_expansivity;
+
+        /**
          * Parameter that determines if faults or plate boundaries are used as another
          * compositional field.
          */
         bool use_faults;
-
-        /**
-         * Approximate lithosphere thickness used to separate the regions of
-         * temperature derived from seismic tomography and linear temperature
-         * gradient.
-        */
-        double lithosphere_thickness;
 
         /**
          * Parameter used to decribe the uppermost mantle based on Tutu (2018).
