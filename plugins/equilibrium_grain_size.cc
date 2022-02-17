@@ -134,6 +134,12 @@ namespace aspect
           thermal_expansivity_column_index = thermal_expansivity_profile.get_column_index_from_name("thermal_expansivity");
         }
 
+       if (use_depth_dependent_dT_vs)
+        {
+          dT_vs_depth_profile.initialize(this->get_mpi_communicator());
+          temperature_scaling_index = dT_vs_depth_profile.get_column_index_from_name("temperature_scaling");
+        }     
+
       // Get column for crustal depths
       std::set<types::boundary_id> surface_boundary_set;
       surface_boundary_set.insert(this->get_geometry_model().translate_symbolic_boundary_name_to_id("top"));
@@ -881,15 +887,28 @@ namespace aspect
               // Get variable lithosphere and crustal depths using an adiabatic boundary ascii file
               lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
               crustal_thickness = crustal_boundary_depth.get_data_component(surface_boundary_id, in.position[i], 0);
+              
+              // This variable stores the seismic tomography based temperatures
+              double mantle_temperature;
 
               // This does not work when it is called before the adiabatic conditions are initialized, because
               // the AsciiDataBoundary plugin needs the time, which is not yet initialized at that point.
               const double initial_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
               const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
+              
+              if (use_depth_dependent_dT_vs)
+                {
+                  // We use the dlnvs/dT profile from Steinberger and Calderwood (2006). The values in profile are in units 1/K .
+                  mantle_temperature = reference_temperature +
+                                       delta_log_vs * dT_vs_depth_profile.get_data_component(Point<1>(depth), temperature_scaling_index);
+                }
 
-              // compute the temperature below the asthenosphere using the parameters given in the table by Becker (2006).
-              const double mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
-
+              else
+                {
+                  // compute the temperature below the asthenosphere using the parameters given in the table by Becker (2006).
+                  mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
+                }
+              
               const double sigmoid_width = 2.e4;
               const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
 
@@ -1232,7 +1251,7 @@ namespace aspect
           prm.declare_entry ("Use depth dependent density scaling", "false",
                              Patterns::Bool (),
                              "This parameter value determines if we want to use depth-dependent scaling files "
-                             "for computing the density from seismi velocities (if true) or use a constant "
+                             "for computing the density from seismic velocities (if true) or use a constant "
                              "value (if false).");
           prm.declare_entry ("Use thermal expansivity profile", "true",
                              Patterns::Bool (),
@@ -1247,18 +1266,26 @@ namespace aspect
                              "using the temperature model of Tutu et al. (above) and derived from seismic "
                              "tomography (below). "
                              "Units: m.");
+          prm.declare_entry ("Use depth dependent temperature scaling", "false",
+                             Patterns::Bool (),
+                             "This parameter value determines if we want to use a depth-dependent scaling read "
+                             "in from a data file for computing the temperature from seismic velocities (if true) "
+                             "or use a constant value (if false).");
 
           // Depth-dependent viscosity parameters
           Rheology::AsciiDepthProfile<dim>::declare_parameters(prm);
 
           // Depth-dependent density scaling parameters
-          Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../input_data/", "depth_rho_vs_tutu.txt", "Density velocity scaling");
+          Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../../input_data/", "rho_vs_scaling.txt", "Density velocity scaling");
+
+          // Depth-dependent density scaling parameters
+          Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../../input_data/", "dT_vs_scaling.txt", "Temperature velocity scaling");
 
           // Depth-dependent thermal expansivity parameters
-          Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../input_data/", "thermal_expansivity_steinberger_calderwood.txt", "Thermal expansivity profile");
+          Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../../input_data/", "thermal_expansivity_steinberger_calderwood.txt", "Thermal expansivity profile");
 
           // Crustal boundary depths parameters
-          Utilities::AsciiDataBoundary<dim>::declare_parameters(prm,  "../input_data/crust1.0/", "crustal_structure.txt", "Crustal depths");
+          Utilities::AsciiDataBoundary<dim>::declare_parameters(prm,  "../../input_data/crust1.0/", "crustal_structure.txt", "Crustal depths");
         }
         prm.leave_subsection();
       }
@@ -1418,6 +1445,7 @@ namespace aspect
           use_depth_dependent_viscosity           = prm.get_bool ("Use depth dependent viscosity");
           use_faults                              = prm.get_bool ("Use faults");
           use_depth_dependent_rho_vs              = prm.get_bool ("Use depth dependent density scaling");
+          use_depth_dependent_dT_vs               = prm.get_bool ("Use depth dependent temperature scaling");
           use_depth_dependent_thermal_expansivity = prm.get_bool ("Use thermal expansivity profile");
           uppermost_mantle_thickness              = prm.get_double ("Uppermost mantle thickness");
 
@@ -1435,6 +1463,9 @@ namespace aspect
 
           if (use_depth_dependent_thermal_expansivity)
             thermal_expansivity_profile.parse_parameters(prm, "Thermal expansivity profile");
+          
+          if (use_depth_dependent_dT_vs)
+            dT_vs_depth_profile.parse_parameters(prm, "Temperature velocity scaling");
 
           crustal_boundary_depth.initialize_simulator (this->get_simulator());
           crustal_boundary_depth.parse_parameters(prm, "Crustal depths");

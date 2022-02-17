@@ -196,6 +196,7 @@ subsection Material model
    
    set Use depth dependent viscosity               = true
    set Use depth dependent density scaling         = true
+   set Use depth dependent temperature scaling     = true
    set Use faults                                  = true
 
    subsection Ascii data model
