@@ -108,12 +108,11 @@ namespace aspect
         {
           // use material properties calculated at i-1
           // The first column in the input ascii file is the radius from the center of the Earth,
-          // therfore we convert the depths to the radial values in the get_data_component().
-          const double model_depths = double(i)/double(n_points-1)*this->get_geometry_model().maximal_depth();
+          // therefore we convert the depths to the radial values in the get_data_component().
+          const double current_depth = double(i)/double(n_points-1)*this->get_geometry_model().maximal_depth();
+          const double outer_radius = this->get_geometry_model().representative_point(0.).norm();
 
-          const double radius = 6378137.;
-
-          double density = reference_profile.get_data_component(Point<1>(radius - model_depths),density_index);
+          double density = reference_profile.get_data_component(Point<1>(outer_radius - current_depth),density_index);
 
           if (i==0)
             {
@@ -133,7 +132,7 @@ namespace aspect
               // We only want to use the PREM densities in the part of the model that also
               // uses seismic velocities to determine the densities. Otherwise, use the density
               // computed by the material model.
-              if (model_depths < uppermost_mantle_thickness)
+              if (current_depth < uppermost_mantle_thickness)
                 density = out.densities[0];
 
               const double alpha = out.thermal_expansion_coefficients[0];
@@ -154,7 +153,7 @@ namespace aspect
                                 temperatures[0];
             }
 
-          const Point<dim> representative_point = this->get_geometry_model().representative_point (model_depths);
+          const Point<dim> representative_point = this->get_geometry_model().representative_point (current_depth);
           const Tensor <1,dim> g = this->get_gravity_model().gravity_vector(representative_point);
 
           in.position[0] = representative_point;
@@ -188,7 +187,7 @@ namespace aspect
 
           // Make sure we get the first point of the profile right. We can only assign the correct
           // value after the material model has been evaluated.
-          if (model_depths < uppermost_mantle_thickness && i==0)
+          if (current_depth < uppermost_mantle_thickness && i==0)
             densities[i] = out.densities[0];
         }
 
