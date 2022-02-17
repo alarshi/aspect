@@ -53,6 +53,20 @@ namespace aspect
                                                 n_points)
         {}
     };
+
+    /**
+     * Additional output fields for the the material type, decribing if we are in the
+     * crust/lithosphere/asthenosphere/lower mantle.
+     */
+    template <int dim>
+    class MaterialTypeAdditionalOutputs : public NamedAdditionalMaterialOutputs<dim>
+    {
+      public:
+        MaterialTypeAdditionalOutputs(const unsigned int n_points)
+          : NamedAdditionalMaterialOutputs<dim>(std::vector<std::string>(1, "material_type"),
+                                                n_points)
+        {}
+    };
   }
 
   namespace internal
@@ -376,11 +390,11 @@ namespace aspect
                 }
             }
 
+          if (unscaled_viscosity_out != nullptr)
+            unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]);
+
           if (use_depth_dependent_viscosity)
             {
-              if (unscaled_viscosity_out != nullptr)
-                unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]);
-
               const double viscosity_scaling_below_this_depth = 60e3;
 
               // Scale viscosity so that laterally averaged viscosity == reference viscosity profile
@@ -905,6 +919,8 @@ namespace aspect
               // Reference temperature is 20 C in Tutu et al. (2018).
               double deltaT  = new_temperature - 293.;
 
+              unsigned int material_type = 0;
+
               // Density computation
               if (depth <= crustal_thickness)
                 {
@@ -912,6 +928,7 @@ namespace aspect
                   out.compressibilities[i] = 1./6.3e10;
                   out.densities[i] = 2.85e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
                                                + pressure * out.compressibilities[i]);
+                  material_type = 1;
                 }
               else if (depth > crustal_thickness && depth <= lithosphere_thickness)
                 {
@@ -919,6 +936,7 @@ namespace aspect
                   out.compressibilities[i] = 1./12.2e10;
                   out.densities[i] = 3.27e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
                                                + pressure * out.compressibilities[i]);
+                  material_type = 2;
                 }
               else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
                 {
@@ -926,6 +944,7 @@ namespace aspect
                   out.compressibilities[i] = 1./12.2e10;
                   out.densities[i] = 3.3e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
                                               + pressure * out.compressibilities[i]);
+                  material_type = 3;
                 }
               else
                 {
@@ -950,7 +969,12 @@ namespace aspect
                     out.thermal_expansion_coefficients[i] = thermal_expansivity_profile.get_data_component(Point<1>(depth), thermal_expansivity_column_index);
                   else
                     out.thermal_expansion_coefficients[i] = thermal_alpha;
+
+                  material_type = 4;
                 }
+
+              if (MaterialTypeAdditionalOutputs<dim> *material_type_out = out.template get_additional_output<MaterialTypeAdditionalOutputs<dim> >())
+                material_type_out->output_values[0][i] = material_type;
             }
         }
     }
@@ -1519,6 +1543,13 @@ namespace aspect
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
             std::make_unique<UnscaledViscosityAdditionalOutputs<dim>> (n_points));
+        }
+
+      if (out.template get_additional_output<MaterialTypeAdditionalOutputs<dim>>() == nullptr)
+        {
+          const unsigned int n_points = out.viscosities.size();
+          out.additional_outputs.push_back(
+            std::make_unique<MaterialTypeAdditionalOutputs<dim>> (n_points));
         }
     }
   }

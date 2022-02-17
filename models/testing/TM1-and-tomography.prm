@@ -67,11 +67,12 @@ end
 
 
 subsection Initial composition model
-  set List of model names = ascii data slice
+  set List of model names = ascii data
 
   subsection Ascii data model
     set Data directory = ../../input_data/
     set Data file name = LLNL_velocity_model_wb.txt
+    set Slice dataset in 2D plane = true
   end
 end
 
@@ -147,7 +148,7 @@ subsection Material model
 
    subsection Density velocity scaling
      set Data directory                            = ../../input_data/
-     set Data file name                            = depth_rho_vs_tutu.txt
+     set Data file name                            = rho_vs_scaling.txt
    end
    
    subsection Thermal expansivity profile
@@ -172,7 +173,7 @@ subsection Postprocess
   set List of postprocessors         = velocity statistics, visualization
   
   subsection Visualization
-    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure
+    set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, named additional outputs
     set Output format  = vtu  
   end
 end
