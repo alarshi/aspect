@@ -1,6 +1,6 @@
 set Dimension = 3
 set World builder file                     = ../../input_data/geodynamic_world_builder_smooth_faults_deep.json
-set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so, ../../plugins/libreference_profile.so 
+set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so
 set Use years in output instead of seconds = true
 set Output directory                       = itrf_stein_tutu_scaling_deep-smooth-faults-3
 set Max nonlinear iterations               = 10
@@ -8,7 +8,7 @@ set Nonlinear solver tolerance             = 1e-4
 set Nonlinear solver scheme                = iterated Advection and Stokes #single Advection, single Stokes #
 set Start time                             = 0
 set End time                               = 0
-set Adiabatic surface temperature          = 1600.0
+set Adiabatic surface temperature          = 1573
 
 
 subsection Solver parameters
@@ -150,7 +150,7 @@ end
 
 subsection Material model
   set Model name         = equilibrium grain size
-  set Material averaging = harmonic average
+  set Material averaging = harmonic average only viscosity
 
   subsection Equilibrium grain size model   
     set Average specific grain boundary energy      = 1.0,1.0,1.0,1.0
@@ -179,8 +179,8 @@ subsection Material model
 
    set Reference compressibility                   = 4e-12
    set Reference density                           = 3400
-   set Reference specific heat                     = 1250
-   set Reference temperature                       = 1600
+   set Reference specific heat                     = 1200
+   set Reference temperature                       = 1573
    set Thermal conductivity                        = 4
    set Thermal expansion coefficient               = 2.0e-5
    set Use paleowattmeter                          = true
@@ -208,6 +208,11 @@ subsection Material model
      set Data directory                            = ../../input_data/
      set Data file name                            = rho_vs_scaling.txt
    end
+   
+   subsection Thermal expansivity profile
+     set Data directory                            = ../../input_data/
+     set Data file name                            = thermal_expansivity_steinberger_calderwood.txt
+   end
 
    subsection Crustal depths
      set Data directory                            = ../../input_data/
@@ -215,6 +220,11 @@ subsection Material model
    end
 
   end
+end
+
+
+subsection Formulation
+  set Mass conservation = reference density profile
 end
 
 
