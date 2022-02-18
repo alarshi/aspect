@@ -1463,6 +1463,8 @@ namespace aspect
           use_depth_dependent_dT_vs               = prm.get_bool ("Use depth dependent temperature scaling");
           use_depth_dependent_thermal_expansivity = prm.get_bool ("Use thermal expansivity profile");
           uppermost_mantle_thickness              = prm.get_double ("Uppermost mantle thickness");
+          faults_viscosity                        = prm.get_double ("Faults viscosity");
+          asthenosphere_viscosity                 = prm.get_double ("Asthenosphere viscosity");
 
           // Parse all depth-dependent parameters
           if (use_depth_dependent_viscosity)
