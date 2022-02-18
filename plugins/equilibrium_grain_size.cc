@@ -989,6 +989,8 @@ namespace aspect
                   else
                     out.thermal_expansion_coefficients[i] = thermal_alpha;
 
+                  out.compressibilities[i] = reference_compressibility;
+
                   material_type = 4;
                 }
 
