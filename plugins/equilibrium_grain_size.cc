@@ -134,11 +134,11 @@ namespace aspect
           thermal_expansivity_column_index = thermal_expansivity_profile.get_column_index_from_name("thermal_expansivity");
         }
 
-       if (use_depth_dependent_dT_vs)
+      if (use_depth_dependent_dT_vs)
         {
           dT_vs_depth_profile.initialize(this->get_mpi_communicator());
           temperature_scaling_index = dT_vs_depth_profile.get_column_index_from_name("temperature_scaling");
-        }     
+        }
 
       // Get column for crustal depths
       std::set<types::boundary_id> surface_boundary_set;
@@ -249,7 +249,7 @@ namespace aspect
       double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
 
       // This parameter is only because we change the asthenosphere viscosity in our models.
-      // By default, it is set to the value in reference steinberger profile.
+      // By default, it is set to the value in the reference profile.
       if (depth_index == 1)
         reference_viscosity = asthenosphere_viscosity;
 
@@ -418,11 +418,13 @@ namespace aspect
           out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
 
           // If using faults, use the composition value to compute the viscosity instead
+          // We extend the faults to depths 40 km more than the lithospheric depths because otherwise
+          // faults do not extend through the lithosphere in our high-resolution models.
           if (use_faults && in.composition[i][fault_index] > 0. && depth <= lithosphere_thickness + 40e3)
             {
               const double background_viscosity_log = std::log10(out.viscosities[i]);
               out.viscosities[i] = std::pow(10,
-                                            std::log10(faults_viscosity) * in.composition[i][fault_index]
+                                            std::log10(fault_viscosity) * in.composition[i][fault_index]
                                             + background_viscosity_log * (1. - in.composition[i][fault_index]));
             }
 
@@ -892,7 +894,7 @@ namespace aspect
               // Get variable lithosphere and crustal depths using an adiabatic boundary ascii file
               lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
               crustal_thickness = crustal_boundary_depth.get_data_component(surface_boundary_id, in.position[i], 0);
-              
+
               // This variable stores the seismic tomography based temperatures
               double mantle_temperature;
 
@@ -900,7 +902,7 @@ namespace aspect
               // the AsciiDataBoundary plugin needs the time, which is not yet initialized at that point.
               const double initial_temperature = this->get_initial_temperature_manager().initial_temperature(in.position[i]);
               const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
-              
+
               if (use_depth_dependent_dT_vs)
                 {
                   // We use the dlnvs/dT profile from Steinberger and Calderwood (2006). The values in profile are in units 1/K .
@@ -913,7 +915,7 @@ namespace aspect
                   // compute the temperature below the asthenosphere using the parameters given in the table by Becker (2006).
                   mantle_temperature = reference_temperature + delta_log_vs * -4.2 * 1785.;
                 }
-              
+
               const double sigmoid_width = 2.e4;
               const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
 
@@ -1255,14 +1257,16 @@ namespace aspect
                              Patterns::Bool (),
                              "This parameter value determines if we want to use the faults/plate boundaries as "
                              "a composition field, currently input as a world builder file.");
-          prm.declare_entry ("Faults viscosity", "1e20",
+          prm.declare_entry ("Fault viscosity", "1e20",
                              Patterns::Double(0),
                              "This parameter value determines the viscosity of faults or plate boundaries. "
                              "We would want to have weak faults/plate boundaries relative to the surrounding "
-			     "lithosphere.");
+                             "lithosphere. "
+                             "Units: Pa.s");
           prm.declare_entry ("Asthenosphere viscosity", "2.4e20",
                              Patterns::Double(0),
-                             "This parameter value determines the asthenosphere layer in the reference file.");
+                             "This parameter value determines the asthenosphere layer in the reference file. "
+                             "Units: Pa.s");
           prm.declare_entry ("Use depth dependent density scaling", "false",
                              Patterns::Bool (),
                              "This parameter value determines if we want to use depth-dependent scaling files "
@@ -1463,7 +1467,7 @@ namespace aspect
           use_depth_dependent_dT_vs               = prm.get_bool ("Use depth dependent temperature scaling");
           use_depth_dependent_thermal_expansivity = prm.get_bool ("Use thermal expansivity profile");
           uppermost_mantle_thickness              = prm.get_double ("Uppermost mantle thickness");
-          faults_viscosity                        = prm.get_double ("Faults viscosity");
+          fault_viscosity                        = prm.get_double ("Fault viscosity");
           asthenosphere_viscosity                 = prm.get_double ("Asthenosphere viscosity");
 
           // Parse all depth-dependent parameters
@@ -1480,7 +1484,7 @@ namespace aspect
 
           if (use_depth_dependent_thermal_expansivity)
             thermal_expansivity_profile.parse_parameters(prm, "Thermal expansivity profile");
-          
+
           if (use_depth_dependent_dT_vs)
             dT_vs_depth_profile.parse_parameters(prm, "Temperature velocity scaling");
 

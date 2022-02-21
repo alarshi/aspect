@@ -1,4 +1,6 @@
 # Test data for ascii data reference state
+# The input reference viscosity profile is changed from steinberger_source.txt to 
+# include asthenospheric depths until 300 km instead of ~ 214 km in the original profile.
 # Only next line is parsed in format: [nx] because of keyword "POINTS:"
 # POINTS: 23
 # Columns: depth (m), viscosity (Pa.s)

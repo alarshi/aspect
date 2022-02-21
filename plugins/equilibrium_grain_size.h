@@ -420,11 +420,11 @@ namespace aspect
         /**
          * Parameter that determines the viscosity of faults or plate boundaries.
          */
-        double faults_viscosity;
+        double fault_viscosity;
 
         /**
          * Parameter that determines the viscosity asthenosphere. By default, use
-         * the value from reference viscosity profile.
+         * the value from the reference viscosity profile.
          */
         double asthenosphere_viscosity;
 

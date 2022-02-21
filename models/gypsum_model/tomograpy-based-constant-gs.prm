@@ -198,11 +198,11 @@ subsection Material model
    set Use depth dependent density scaling         = true
    set Use depth dependent temperature scaling     = true
    set Use faults                                  = true
-set Faults viscosity = 1e20
-set Asthenosphere viscosity = 1e20
+   set Fault viscosity                             = 1e20
+   set Asthenosphere viscosity                     = 1e20
 
    subsection Ascii data model
-     set Data directory                            = ../../input_data/
+     set Data directory                            = ../../input_data/viscosity_profiles/
      set Data file name                            = steinberger_source-1.txt #becker_viscosity_reducedT.txt #stein_smooth.txt  #simple_visc.txt #becker_viscosity.txt 
    end
 
