@@ -7,9 +7,8 @@
 # (3) PB2002_steps.txt      : Bird plate boundaries (Bird, 2003)
 # (4) bird_gem_faults.txt   : Bird plate boundaries from the GEM database.
 
-# The files (2), (3), and (4) can be generated using the notebook, make_world_builder_plate_boundaries.ipynb 
-# by running the 2nd, 3rd, 4th cell (i.e., input the json file and use the faults to define each 'feature') 
-# and the second-to-last cell (outputs the longitude, latitude in a text file such that each pair is in new line).
+# The files (2), (3), and (4) can be generated using the notebook make_world_builder_plate_boundaries.ipynb 
+# using the corresponding input json file.
 # Thereafter we remove the square brackets "[" and "]" in the output text files using vi and command "%s/\]//" 
 # and "%s/\[//", and then use this bash file.
 # To use the specific file names change the $file_name parameter for (2), (3), (4). 
