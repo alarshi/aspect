@@ -1,4 +1,35 @@
-README containing the workflow to take an ASPECT model output and:
+README contains the description of the files within the folder:
+
+make_world_builder_plate_boundaries.ipynb : This is a jupyter notebook that generates a World builder file defining plate
+    boundaries/faults on the Earth's surface with the locations and geometries specified using an input JSON file. 
+    The output world builder file contains the geometry of plate boundaries as an assigned compositional field which 
+    can be used in aspect for mantle convection models.
+    The following json files are currently present in the directory defining different the plate boundary faults:
+
+    1) gem_active_faults.geojson : This JSON file contains faults from the Global earthquake model database from
+	   https://github.com/GEMScienceTools/gem-global-active-faults. 
+	2) PB2002_steps.json         : This JSON file describes Peter Bird's 2003 plate boundary model as discrete 
+       polygons/steps. The file was downloaded from https://github.com/fraxen/tectonicplates. This model contains closed
+	   plate boundary polygons.
+	3) bird_gem_faults.json      : This JSON file contains faults from the Global earthquake model database but only
+	   in the Bird 2003 catalog. This model contains fault segments that do not close into a polygon. 
+
+nuvel_plates.txt : This is the text file containing the plate boundaries from  http://jules.unavco.org/GMT/nuvel_1_plates
+	 NOTE: We had to modify the downloaded file using awk '{sub(/:.*/,">")} {print $0}' nuvel_1_plates > nuvel_plates.txt
+	 to remove the text corresponding to each line segment and use ">" as a segment separator. 
+
+nuvel_world_builder.ipynb : This is a jupyter notebook that uses the text file nuvel_plates.txt to generate a world builder 
+     file such that each segment separated by ">" in the text file specifies a fault feature as needed in worldbuilder.
+
+plate_boundaries.sh : This is the bash file used to plot plate boundaries using GMT4. The user can change the input
+    files for plotting in the script. The input files are just the coordinates from the JSON files used above to create
+	the world builder json file.
+	NOTE: As part of this reformatting, we change the longitude range from [0, 360] to [-180, 180], and we modify 
+	individual segments where longitudes varied from 158 to 188 and then back to 130. In such segments,
+    world builder joins the points along the longer axis when crossing the date line. To ensure that world builder 
+	connects the points along the shorter axis, we change the points such that they go from -202 to -172 to -230. 
+
+It also contains the workflow to take an ASPECT model output and:
 	- convert P,T,d,f to Vs, Q
 	- write a world.dat file with P,T,d,Vp,Vs,Q,eta specified at each point
 	- construct a relevant 1D profile (radial average, sectoral average, or local around raypath)
@@ -41,3 +72,4 @@ Step-by-step guide
 		  freq/
 		  	   phase/	
 		which contains path_STA# and ttandtstar.txt
+
