@@ -248,11 +248,6 @@ namespace aspect
       // the largest depth in the profile).
       double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
 
-      // This parameter is only because we change the asthenosphere viscosity in our models.
-      // By default, it is set to the value in reference steinberger profile.
-      if (depth_index == 1)
-        reference_viscosity = asthenosphere_viscosity;
-
       return std::make_pair (reference_viscosity, depth_index);
 
     }
@@ -296,8 +291,6 @@ namespace aspect
       UnscaledViscosityAdditionalOutputs<dim> *unscaled_viscosity_out =
         out.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim> >();
 
-      const unsigned int craton_composition = this->introspection().compositional_index_for_name("continents");
-
       const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
         this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
 
@@ -309,6 +302,11 @@ namespace aspect
                                        this->introspection().compositional_index_for_name("faults")
                                        :
                                        numbers::invalid_unsigned_int;
+      const unsigned int craton_index = (use_cratons)
+                                        ?
+                                        this->introspection().compositional_index_for_name("continents")
+                                        :
+                                        numbers::invalid_unsigned_int;
 
       for (unsigned int i=0; i<in.n_evaluation_points(); ++i)
         {
@@ -419,20 +417,28 @@ namespace aspect
           // Ensure we respect viscosity bounds
           out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
 
+          // This represents the viscosity with respect to which we want to define cratons/faults.
+          const double background_viscosity_log = std::log10(out.viscosities[i]);
+
           // If using faults, use the composition value to compute the viscosity instead
           // We extend the faults to depths 40 km more than the lithospheric depths because otherwise
           // faults do not extend through the lithosphere in our high-resolution models.
           if (use_faults && in.composition[i][fault_index] > 0. && depth <= lithosphere_thickness + 40e3)
             {
-              const double background_viscosity_log = std::log10(out.viscosities[i]);
               out.viscosities[i] = std::pow(10,
                                             std::log10(fault_viscosity) * in.composition[i][fault_index]
                                             + background_viscosity_log * (1. - in.composition[i][fault_index]));
             }
 
-          // If using cratons, use strong viscosity
-          if (in.composition[i][craton_composition] > 0. && depth <= lithosphere_thickness + 40e3)
-            out.viscosities[i] = 1e26;
+          // If using cratons, use the composition value to compute the viscosity instead. The cratons in the
+          // compositional field extend until 300 km (Becker 2006, Miller and Becker, 2012), we assume that the
+          // cratonic keels are stiffer than the surrounding lithosphere
+          if (use_cratons && in.composition[i][craton_index] > 0.)
+            {
+              out.viscosities[i] = std::pow(10,
+                                            craton_viscosity * in.composition[i][craton_index]
+                                            + background_viscosity_log * (1. - in.composition[i][craton_index]));
+            }
 
           Assert(out.viscosities[i] > 0,
                  ExcMessage("Viscosity has to be positive. Instead it is: " + std::to_string(out.viscosities[i])));
@@ -860,7 +866,12 @@ namespace aspect
       // Determine some properties that are constant for all points
       const unsigned int vs_anomaly_index = this->introspection().compositional_index_for_name("vs_anomaly");
       const unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
-      const unsigned int craton_composition = this->introspection().compositional_index_for_name("continents");
+
+      const unsigned int craton_index = (use_cratons)
+                                        ?
+                                        this->introspection().compositional_index_for_name("continents")
+                                        :
+                                        numbers::invalid_unsigned_int;
 
       const InitialTemperature::AdiabaticBoundary<dim> &adiabatic_boundary =
         this->get_initial_temperature_manager().template get_matching_initial_temperature_model<InitialTemperature::AdiabaticBoundary<dim> >();
@@ -971,13 +982,29 @@ namespace aspect
                                                + pressure * out.compressibilities[i]);
                   material_type = 2;
                 }
-              else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
+              else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness && !use_cratons)
                 {
                   out.thermal_expansion_coefficients[i] = 3.e-5;
                   out.compressibilities[i] = 1./12.2e10;
                   out.densities[i] = 3.3e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
                                               + pressure * out.compressibilities[i]);
                   material_type = 3;
+                }
+              // Cratonic lithosphere is assumed neutrally buoyant until 300 km
+              else if (depth > crustal_thickness && depth <= 300.e3 && use_cratons)
+                {
+                  out.thermal_expansion_coefficients[i] = 3.e-5;
+                  out.compressibilities[i] = 1./12.2e10;
+                  const double surrounding_lith_density = 3.27e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
+                                                                    + pressure * out.compressibilities[i]);
+                  // Density increase along adiabatic profile
+                  const double craton_density = 3.27e3 * ( 1. - out.thermal_expansion_coefficients[i] *
+                                                           (this->get_adiabatic_conditions().temperature(in.position[i]) - 293)
+                                                           + pressure * out.compressibilities[i]);
+
+                  out.densities[i] = craton_density * in.composition[i][craton_index] +
+                                     surrounding_lith_density * (1. - in.composition[i][craton_index]);
+                  material_type = 2;
                 }
               else
                 {
@@ -1274,6 +1301,15 @@ namespace aspect
                              Patterns::Double(0),
                              "This parameter value determines the asthenosphere layer in the reference file. "
                              "Units: Pa.s");
+          prm.declare_entry ("Use cratons", "false",
+                             Patterns::Bool (),
+                             "This parameter value determines if we want to use cratons as viscous and neutrally "
+                             "buoyant composition field, currently input as a world builder file.");
+          prm.declare_entry ("Craton viscosity", "1e25",
+                             Patterns::Double(0),
+                             "This parameter value determines the viscosity of cratons. We would want to have "
+                             "strong cratons relative to the surrounding lithosphere."
+                             "Units: Pa.s");
           prm.declare_entry ("Use depth dependent density scaling", "false",
                              Patterns::Bool (),
                              "This parameter value determines if we want to use depth-dependent scaling files "
@@ -1470,12 +1506,14 @@ namespace aspect
           use_table_properties                    = prm.get_bool ("Use table properties");
           use_depth_dependent_viscosity           = prm.get_bool ("Use depth dependent viscosity");
           use_faults                              = prm.get_bool ("Use faults");
+          use_cratons                             = prm.get_bool ("Use cratons");
           use_depth_dependent_rho_vs              = prm.get_bool ("Use depth dependent density scaling");
           use_depth_dependent_dT_vs               = prm.get_bool ("Use depth dependent temperature scaling");
           use_depth_dependent_thermal_expansivity = prm.get_bool ("Use thermal expansivity profile");
           uppermost_mantle_thickness              = prm.get_double ("Uppermost mantle thickness");
-          fault_viscosity                        = prm.get_double ("Fault viscosity");
+          fault_viscosity                         = prm.get_double ("Fault viscosity");
           asthenosphere_viscosity                 = prm.get_double ("Asthenosphere viscosity");
+          craton_viscosity                        = prm.get_double ("Craton viscosity");
 
           // Parse all depth-dependent parameters
           if (use_depth_dependent_viscosity)
