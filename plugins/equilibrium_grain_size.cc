@@ -436,7 +436,7 @@ namespace aspect
           if (use_cratons && in.composition[i][craton_index] > 0.)
             {
               out.viscosities[i] = std::pow(10,
-                                            craton_viscosity * in.composition[i][craton_index]
+                                            std::log10(craton_viscosity) * in.composition[i][craton_index]
                                             + background_viscosity_log * (1. - in.composition[i][craton_index]));
             }
 
