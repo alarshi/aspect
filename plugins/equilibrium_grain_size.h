@@ -423,8 +423,8 @@ namespace aspect
         double fault_viscosity;
 
         /**
-         * Parameter that determines the viscosity asthenosphere. By default, use
-         * the value from the reference viscosity profile.
+         * Parameter that determines the asthenosphere viscosity. By default, use
+         * the value from the Steinberger & Calderwood reference viscosity profile.
          */
         double asthenosphere_viscosity;
 
