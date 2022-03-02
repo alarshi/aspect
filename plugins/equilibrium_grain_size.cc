@@ -248,6 +248,11 @@ namespace aspect
       // the largest depth in the profile).
       double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
 
+      // This parameter is only because we change the asthenosphere viscosity in our models.
+      // By default, it is set to the value in the reference profile.
+      if (depth_index == 1)
+        reference_viscosity = asthenosphere_viscosity;
+
       return std::make_pair (reference_viscosity, depth_index);
 
     }
