@@ -438,7 +438,7 @@ namespace aspect
           // If using cratons, use the composition value to compute the viscosity instead. The cratons in the
           // compositional field extend until 300 km (Becker 2006, Miller and Becker, 2012), we assume that the
           // cratonic keels are stiffer than the surrounding lithosphere
-          if (use_cratons && in.composition[i][craton_index] > 0.)
+          if (use_cratons && in.composition[i][craton_index] > 0. && depth <= lithosphere_thickness)
             {
               out.viscosities[i] = std::pow(10,
                                             std::log10(craton_viscosity) * in.composition[i][craton_index]
@@ -986,30 +986,25 @@ namespace aspect
                   out.densities[i] = 3.27e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
                                                + pressure * out.compressibilities[i]);
                   material_type = 2;
+
+                  if (use_cratons)
+                    {
+                      // Density increase along adiabatic profile
+                      const double craton_density = 3.27e3 * ( 1. - out.thermal_expansion_coefficients[i] *
+                                                               (this->get_adiabatic_conditions().temperature(in.position[i]) - 293)
+                                                               + pressure * out.compressibilities[i]);
+
+                      out.densities[i] = craton_density * in.composition[i][craton_index] +
+                                         out.densities[i] * (1. - in.composition[i][craton_index]);
+                    }
                 }
-              else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness && !use_cratons)
+              else if (depth > lithosphere_thickness && depth <= uppermost_mantle_thickness)
                 {
                   out.thermal_expansion_coefficients[i] = 3.e-5;
                   out.compressibilities[i] = 1./12.2e10;
                   out.densities[i] = 3.3e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
                                               + pressure * out.compressibilities[i]);
                   material_type = 3;
-                }
-              // Cratonic lithosphere is assumed neutrally buoyant until 300 km
-              else if (depth > crustal_thickness && depth <= 300.e3 && use_cratons)
-                {
-                  out.thermal_expansion_coefficients[i] = 3.e-5;
-                  out.compressibilities[i] = 1./12.2e10;
-                  const double surrounding_lith_density = 3.27e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
-                                                                    + pressure * out.compressibilities[i]);
-                  // Density increase along adiabatic profile
-                  const double craton_density = 3.27e3 * ( 1. - out.thermal_expansion_coefficients[i] *
-                                                           (this->get_adiabatic_conditions().temperature(in.position[i]) - 293)
-                                                           + pressure * out.compressibilities[i]);
-
-                  out.densities[i] = craton_density * in.composition[i][craton_index] +
-                                     surrounding_lith_density * (1. - in.composition[i][craton_index]);
-                  material_type = 2;
                 }
               else
                 {
