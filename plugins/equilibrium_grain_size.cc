@@ -313,6 +313,18 @@ namespace aspect
                                         :
                                         numbers::invalid_unsigned_int;
 
+      const unsigned int ridge_index = (use_varying_fault_viscosity)
+                                       ?
+                                       this->introspection().compositional_index_for_name("ridges")
+                                       :
+                                       numbers::invalid_unsigned_int;
+
+      const unsigned int trench_index = (use_varying_fault_viscosity)
+                                        ?
+                                        this->introspection().compositional_index_for_name("trenches")
+                                        :
+                                        numbers::invalid_unsigned_int;
+
       for (unsigned int i=0; i<in.n_evaluation_points(); ++i)
         {
           const double depth = this->get_geometry_model().depth(in.position[i]);
@@ -443,6 +455,22 @@ namespace aspect
               out.viscosities[i] = std::pow(10,
                                             std::log10(craton_viscosity) * in.composition[i][craton_index]
                                             + background_viscosity_log * (1. - in.composition[i][craton_index]));
+            }
+          // This is modification for varying viscosity of faults depending on the ridges or trenches.
+          if (use_varying_fault_viscosity && in.composition[i][ridge_index] > 0. && depth <= lithosphere_thickness + 40e3)
+            {
+              const double background_viscosity_log = std::log10(out.viscosities[i]);
+              out.viscosities[i] = std::pow(10,
+                                            std::log10(ridge_viscosity) * in.composition[i][ridge_index]
+                                            + background_viscosity_log * (1. - in.composition[i][ridge_index]));
+            }
+
+          if (use_varying_fault_viscosity && in.composition[i][trench_index] > 0. && depth <= lithosphere_thickness + 40e3)
+            {
+              const double background_viscosity_log = std::log10(out.viscosities[i]);
+              out.viscosities[i] = std::pow(10,
+                                            std::log10(trench_viscosity) * in.composition[i][trench_index]
+                                            + background_viscosity_log * (1. - in.composition[i][trench_index]));
             }
 
           Assert(out.viscosities[i] > 0,
@@ -1333,7 +1361,25 @@ namespace aspect
                              "This parameter value determines if we want to use a depth-dependent scaling read "
                              "in from a data file for computing the temperature from seismic velocities (if true) "
                              "or use a constant value (if false).");
-
+          prm.declare_entry ("Use varying fault viscosity", "false",
+                             Patterns::Bool (),
+                             "This parameter value determines if we want to use different viscosities for ridges "
+                             "and trenches. We think that ridges are already weakened by the high temperatures "
+                             "and by prescribing additional weak zones, we are making plates surrounded by ridges "
+                             "faster than observed.");
+          // Varying fault parameters
+          prm.enter_subsection("Varying fault viscosity");
+          {
+            prm.declare_entry ("Ridge viscosity", "1e22",
+                               Patterns::Double(0),
+                               "This parameter value determines the viscosity of faults at the ridges. "
+                               "Units: Pa.s");
+            prm.declare_entry ("Trench viscosity", "1e20",
+                               Patterns::Double(0),
+                               "This parameter value determines the viscosity of faults at the trenches. "
+                               "Units: Pa.s");
+          }
+          prm.leave_subsection();
           // Depth-dependent viscosity parameters
           Rheology::AsciiDepthProfile<dim>::declare_parameters(prm);
 
@@ -1512,8 +1558,14 @@ namespace aspect
           use_depth_dependent_thermal_expansivity = prm.get_bool ("Use thermal expansivity profile");
           uppermost_mantle_thickness              = prm.get_double ("Uppermost mantle thickness");
           fault_viscosity                         = prm.get_double ("Fault viscosity");
-          asthenosphere_viscosity                 = prm.get_double ("Asthenosphere viscosity");
-          craton_viscosity                        = prm.get_double ("Craton viscosity");
+          use_varying_fault_viscosity             = prm.get_bool ("Use varying fault viscosity");
+
+          // Parse all parameters for varying viscosity along the faults
+          prm.enter_subsection("Varying fault viscosity");
+          {
+            ridge_viscosity                         = prm.get_double ("Ridge viscosity");
+            trench_viscosity                        = prm.get_double ("Trench viscosity");
+          }
 
           // Parse all depth-dependent parameters
           if (use_depth_dependent_viscosity)
