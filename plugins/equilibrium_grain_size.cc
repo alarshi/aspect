@@ -302,28 +302,21 @@ namespace aspect
       const unsigned int surface_boundary_id = this->get_geometry_model().translate_symbolic_boundary_name_to_id("outer");
 
       const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
-      const unsigned int fault_index = (use_faults)
-                                       ?
-                                       this->introspection().compositional_index_for_name("faults")
-                                       :
-                                       numbers::invalid_unsigned_int;
-      const unsigned int craton_index = (use_cratons)
-                                        ?
-                                        this->introspection().compositional_index_for_name("continents")
-                                        :
-                                        numbers::invalid_unsigned_int;
 
-      const unsigned int ridge_index = (use_varying_fault_viscosity)
-                                       ?
-                                       this->introspection().compositional_index_for_name("ridges")
-                                       :
-                                       numbers::invalid_unsigned_int;
+      unsigned int ridge_index  = numbers::invalid_unsigned_int;
+      unsigned int trench_index = numbers::invalid_unsigned_int;
+      unsigned int fault_index  = numbers::invalid_unsigned_int;
 
-      const unsigned int trench_index = (use_varying_fault_viscosity)
-                                        ?
-                                        this->introspection().compositional_index_for_name("trenches")
-                                        :
-                                        numbers::invalid_unsigned_int;
+      if (use_faults)
+        {
+          if (use_varying_fault_viscosity)
+            {
+              ridge_index  = this->introspection().compositional_index_for_name("ridges");
+              trench_index = this->introspection().compositional_index_for_name("trenches");
+            }
+          else
+            fault_index  = this->introspection().compositional_index_for_name("faults");
+        }
 
       for (unsigned int i=0; i<in.n_evaluation_points(); ++i)
         {
@@ -1582,7 +1575,7 @@ namespace aspect
                          ExcMessage("Variable viscosity along ridges and trenches can only be incorporated "
                                     "if we are using faults in our model."));
 
-          prm.enter_subsection("Faults");
+          prm.enter_subsection("Varying fault viscosity");
           {
             ridge_viscosity                         = prm.get_double ("Ridge viscosity");
             trench_viscosity                        = prm.get_double ("Trench viscosity");
