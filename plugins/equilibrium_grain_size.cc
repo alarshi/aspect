@@ -440,11 +440,28 @@ namespace aspect
           // If using faults, use the composition value to compute the viscosity instead
           // We extend the faults to depths 40 km more than the lithospheric depths because otherwise
           // faults do not extend through the lithosphere in our high-resolution models.
-          if (use_faults && in.composition[i][fault_index] > 0. && depth <= lithosphere_thickness + 40e3)
+          if (use_faults)
             {
-              out.viscosities[i] = std::pow(10,
-                                            std::log10(fault_viscosity) * in.composition[i][fault_index]
-                                            + background_viscosity_log * (1. - in.composition[i][fault_index]));
+              const double background_viscosity_log = std::log10(out.viscosities[i]);
+              if (use_varying_fault_viscosity)
+                {
+                  if (in.composition[i][ridge_index] > 0. && depth <= lithosphere_thickness + 40e3)
+                    out.viscosities[i] = std::pow(10,
+                                                  std::log10(ridge_viscosity) * in.composition[i][ridge_index]
+                                                  + background_viscosity_log * (1. - in.composition[i][ridge_index]));
+                  if (in.composition[i][trench_index] > 0. && depth <= lithosphere_thickness + 40e3)
+                    out.viscosities[i] = std::pow(10,
+                                                  std::log10(trench_viscosity) * in.composition[i][trench_index]
+                                                  + background_viscosity_log * (1. - in.composition[i][trench_index]));
+                }
+
+              else
+                {
+                  if (in.composition[i][fault_index] > 0. && depth <= lithosphere_thickness + 40e3)
+                    out.viscosities[i] = std::pow(10,
+                                                  std::log10(fault_viscosity) * in.composition[i][fault_index]
+                                                  + background_viscosity_log * (1. - in.composition[i][fault_index]));
+                }
             }
 
           // If using cratons, use the composition value to compute the viscosity instead. The cratons in the
@@ -1560,8 +1577,12 @@ namespace aspect
           fault_viscosity                         = prm.get_double ("Fault viscosity");
           use_varying_fault_viscosity             = prm.get_bool ("Use varying fault viscosity");
 
-          // Parse all parameters for varying viscosity along the faults
-          prm.enter_subsection("Varying fault viscosity");
+          if (use_varying_fault_viscosity)
+            AssertThrow (use_faults,
+                         ExcMessage("Variable viscosity along ridges and trenches can only be incorporated "
+                                    "if we are using faults in our model."));
+
+          prm.enter_subsection("Faults");
           {
             ridge_viscosity                         = prm.get_double ("Ridge viscosity");
             trench_viscosity                        = prm.get_double ("Trench viscosity");
