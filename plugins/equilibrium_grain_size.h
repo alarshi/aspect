@@ -427,6 +427,17 @@ namespace aspect
          * the value from the Steinberger & Calderwood reference viscosity profile.
          */
         double asthenosphere_viscosity;
+        
+        /**
+         * Parameter that determines if we want to use viscous and neutrally buoyant cratons as
+         * another compositional field.
+         */
+        bool use_cratons;
+
+        /**
+         * Parameter that determines the viscosity for cratons.
+         */
+        double craton_viscosity;
 
         /**
          * Parameter used to decribe the uppermost mantle based on Tutu (2018).
