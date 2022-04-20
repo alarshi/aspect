@@ -12,19 +12,19 @@ stein_smooth.txt       : Contains smooth version of the profile steinberger_visc
     through the mid-points rather than the points given in the radial-visc.txt, which are the bottom points 
     of each layer.
 
-stein_smooth_phase.txt : Similar to above but contains the depths at phase transitions 410km , 520km, and 660 km
+stein_smooth_phase.txt : Similar to above but contains the depths at phase transitions 410km, 520km, and 660 km
     present in our material. The viscosity is set based on the profile and this file was only created to align
     the depth layers with the phase boundaries to check for any convergence improvements.
 
 steinberger_source.txt : Similar to stein_smooth.txt but contains the surface point so that the profile is shifted
-    by one point up. We do this because in our lateral viscosity averaging scheme, we choose the value top value
-    of viscosity for averaging in a layer.
+    up by one point. We do this because in our lateral viscosity averaging scheme, we choose the viscosity value at the 
+    top of a layer for averaging.
 
-steinberger_source-1.txt :  Same as above except for the second depth point modified from ~ 214 km to 300 km. This 
+steinberger_source-1.txt :  Same as above except for the second depth point, which is modified from ~214 km to 300 km. This 
     is done so that we are consistent with the definition of asthenosphere in our material model.
 
 becker_viscosity.txt : Depth-dependent viscosity structure based on Becker 2006.
 
 radial-visc-simple-3.txt, radial-visc-simple-2.txt, rad_viscosity-source-data.txt : These are the source files 
-   which represents the radius fraction with viscosity based on Steinberger and Calderwood (2006), and were 
+   using the radius fraction (rather than depth) to set the viscosity based on Steinberger and Calderwood (2006), and were  
    used to generate the depth-dependent viscosity  profiles.  
