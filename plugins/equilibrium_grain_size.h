@@ -423,6 +423,21 @@ namespace aspect
         double fault_viscosity;
 
         /**
+         * Parameter that determines if ridges or trenches have different viscosities
+         */
+        bool use_varying_fault_viscosity;
+
+        /**
+         * Parameter that determines the viscosity of faults at ridges.
+         */
+        double ridge_viscosity;
+
+        /**
+         * Parameter that determines the viscosity of faults at trenches.
+         */
+        double trench_viscosity;
+
+        /**
          * Parameter that determines the asthenosphere viscosity. By default, use
          * the value from the Steinberger & Calderwood reference viscosity profile.
          */
