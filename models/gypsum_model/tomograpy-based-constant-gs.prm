@@ -202,7 +202,7 @@ subsection Material model
    set Asthenosphere viscosity                     = 1e20
 
    subsection Ascii data model
-     set Data directory                            = ../../input_data/
+     set Data directory                            = ../../input_data/viscosity_profiles/
      set Data file name                            = steinberger_source-1.txt #becker_viscosity_reducedT.txt #stein_smooth.txt  #simple_visc.txt #becker_viscosity.txt 
    end
 
