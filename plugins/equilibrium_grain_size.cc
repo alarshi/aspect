@@ -303,6 +303,12 @@ namespace aspect
 
       const unsigned int grain_size_index = this->introspection().compositional_index_for_name("grain_size");
 
+      const unsigned int craton_index = (use_cratons)
+                                        ?
+                                        this->introspection().compositional_index_for_name("continents")
+                                        :
+                                        numbers::invalid_unsigned_int;
+
       unsigned int ridge_index  = numbers::invalid_unsigned_int;
       unsigned int trench_index = numbers::invalid_unsigned_int;
       unsigned int fault_index  = numbers::invalid_unsigned_int;
@@ -465,22 +471,6 @@ namespace aspect
               out.viscosities[i] = std::pow(10,
                                             std::log10(craton_viscosity) * in.composition[i][craton_index]
                                             + background_viscosity_log * (1. - in.composition[i][craton_index]));
-            }
-          // This is modification for varying viscosity of faults depending on the ridges or trenches.
-          if (use_varying_fault_viscosity && in.composition[i][ridge_index] > 0. && depth <= lithosphere_thickness + 40e3)
-            {
-              const double background_viscosity_log = std::log10(out.viscosities[i]);
-              out.viscosities[i] = std::pow(10,
-                                            std::log10(ridge_viscosity) * in.composition[i][ridge_index]
-                                            + background_viscosity_log * (1. - in.composition[i][ridge_index]));
-            }
-
-          if (use_varying_fault_viscosity && in.composition[i][trench_index] > 0. && depth <= lithosphere_thickness + 40e3)
-            {
-              const double background_viscosity_log = std::log10(out.viscosities[i]);
-              out.viscosities[i] = std::pow(10,
-                                            std::log10(trench_viscosity) * in.composition[i][trench_index]
-                                            + background_viscosity_log * (1. - in.composition[i][trench_index]));
             }
 
           Assert(out.viscosities[i] > 0,
