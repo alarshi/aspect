@@ -1553,6 +1553,7 @@ namespace aspect
           use_depth_dependent_viscosity           = prm.get_bool ("Use depth dependent viscosity");
           use_faults                              = prm.get_bool ("Use faults");
           use_cratons                             = prm.get_bool ("Use cratons");
+          craton_viscosity                        = prm.get_double("Craton viscosity");
           use_depth_dependent_rho_vs              = prm.get_bool ("Use depth dependent density scaling");
           use_depth_dependent_dT_vs               = prm.get_bool ("Use depth dependent temperature scaling");
           use_depth_dependent_thermal_expansivity = prm.get_bool ("Use thermal expansivity profile");
@@ -1570,6 +1571,7 @@ namespace aspect
             ridge_viscosity                         = prm.get_double ("Ridge viscosity");
             trench_viscosity                        = prm.get_double ("Trench viscosity");
           }
+          prm.leave_subsection();
 
           // Parse all depth-dependent parameters
           if (use_depth_dependent_viscosity)
