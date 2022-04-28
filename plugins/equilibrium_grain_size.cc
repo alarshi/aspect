@@ -441,7 +441,6 @@ namespace aspect
           // faults do not extend through the lithosphere in our high-resolution models.
           if (use_faults)
             {
-              const double background_viscosity_log = std::log10(out.viscosities[i]);
               if (use_varying_fault_viscosity)
                 {
                   if (in.composition[i][ridge_index] > 0. && depth <= lithosphere_thickness + 40e3)
@@ -1553,11 +1552,13 @@ namespace aspect
           use_depth_dependent_viscosity           = prm.get_bool ("Use depth dependent viscosity");
           use_faults                              = prm.get_bool ("Use faults");
           use_cratons                             = prm.get_bool ("Use cratons");
+          craton_viscosity                        = prm.get_double("Craton viscosity");
           use_depth_dependent_rho_vs              = prm.get_bool ("Use depth dependent density scaling");
           use_depth_dependent_dT_vs               = prm.get_bool ("Use depth dependent temperature scaling");
           use_depth_dependent_thermal_expansivity = prm.get_bool ("Use thermal expansivity profile");
           uppermost_mantle_thickness              = prm.get_double ("Uppermost mantle thickness");
           fault_viscosity                         = prm.get_double ("Fault viscosity");
+          asthenosphere_viscosity                 = prm.get_double ("Asthenosphere viscosity");
           use_varying_fault_viscosity             = prm.get_bool ("Use varying fault viscosity");
 
           if (use_varying_fault_viscosity)
@@ -1570,6 +1571,7 @@ namespace aspect
             ridge_viscosity                         = prm.get_double ("Ridge viscosity");
             trench_viscosity                        = prm.get_double ("Trench viscosity");
           }
+          prm.leave_subsection();
 
           // Parse all depth-dependent parameters
           if (use_depth_dependent_viscosity)
