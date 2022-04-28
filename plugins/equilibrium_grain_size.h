@@ -428,6 +428,11 @@ namespace aspect
         bool use_varying_fault_viscosity;
 
         /**
+         * Parameter that determines if lithospheric depths vary or not
+         */
+        bool use_constant_lithosphere_thickness;
+
+        /**
          * Parameter that determines the viscosity of faults at ridges.
          */
         double ridge_viscosity;

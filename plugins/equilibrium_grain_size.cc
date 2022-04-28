@@ -339,9 +339,10 @@ namespace aspect
                  ExcMessage("Pressure has to be non-negative for the viscosity computation. Instead it is: "
                             + std::to_string(pressure)));
 
-          double lithosphere_thickness = 0.;
+          double lithosphere_thickness = 100.e3;
           // Get variable lithosphere using an adiabatic boundary ascii file
-          if (this->get_adiabatic_conditions().is_initialized())
+          // Only use ascii data boundary file if not using a constant thickness for lithosphere
+          if (this->get_adiabatic_conditions().is_initialized() && !use_constant_lithosphere_thickness)
             lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
 
           const unsigned int phase_index = get_phase_index(in.position[i], in.temperature[i], pressure);
@@ -429,6 +430,9 @@ namespace aspect
               if (average_viscosity_profile.size() != 0 && depth > viscosity_scaling_below_this_depth)
                 out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
             }
+
+          if (use_constant_lithosphere_thickness)
+            out.viscosities[i] = 1e24; // Tutu et al., (2018)
 
           // Ensure we respect viscosity bounds
           out.viscosities[i] = std::min(std::max(min_eta, out.viscosities[i]),max_eta);
@@ -945,6 +949,9 @@ namespace aspect
               lithosphere_thickness = adiabatic_boundary.get_data_component(surface_boundary_id, in.position[i], 0);
               crustal_thickness = crustal_boundary_depth.get_data_component(surface_boundary_id, in.position[i], 0);
 
+              if (use_constant_lithosphere_thickness)
+                lithosphere_thickness = 100e3;
+
               // This variable stores the seismic tomography based temperatures
               double mantle_temperature;
 
@@ -1014,7 +1021,7 @@ namespace aspect
                                                + pressure * out.compressibilities[i]);
                   material_type = 2;
 
-                  if (use_cratons)
+                  if (use_cratons || use_constant_lithosphere_thickness)
                     {
                       // Density increase along adiabatic profile
                       const double craton_density = 3.27e3 * ( 1. - out.thermal_expansion_coefficients[i] *
@@ -1366,6 +1373,12 @@ namespace aspect
                              "and trenches. We think that ridges are already weakened by the high temperatures "
                              "and by prescribing additional weak zones, we are making plates surrounded by ridges "
                              "faster than observed.");
+          prm.declare_entry ("Use constant lithosphere thickness", "false",
+                             Patterns::Bool (),
+                             "This parameter value determines if we want to a lithosphere with a constant thickness. " 
+                             "We can evaluate the effects of lithospheric thickness variations on the surface plate "
+                             "motions using this. Currently, this parameter sets the lithosphere to a constant "
+                             "thickness of 100 km.");
           // Varying fault parameters
           prm.enter_subsection("Varying fault viscosity");
           {
@@ -1560,6 +1573,7 @@ namespace aspect
           fault_viscosity                         = prm.get_double ("Fault viscosity");
           asthenosphere_viscosity                 = prm.get_double ("Asthenosphere viscosity");
           use_varying_fault_viscosity             = prm.get_bool ("Use varying fault viscosity");
+          use_constant_lithosphere_thickness      = prm.get_bool("Use constant lithosphere thickness");
 
           if (use_varying_fault_viscosity)
             AssertThrow (use_faults,
