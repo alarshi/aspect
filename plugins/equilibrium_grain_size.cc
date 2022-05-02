@@ -431,7 +431,7 @@ namespace aspect
                 out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
             }
 
-          if (use_constant_lithosphere_thickness)
+          if (use_constant_lithosphere_thickness && depth <= lithosphere_thickness)
             out.viscosities[i] = 1e24; // Tutu et al., (2018)
 
           // Ensure we respect viscosity bounds
