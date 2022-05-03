@@ -1017,11 +1017,16 @@ namespace aspect
                 {
                   out.thermal_expansion_coefficients[i] = 3.e-5;
                   out.compressibilities[i] = 1./12.2e10;
+
+                  // Use adiabatic density increase when using constant lithosphere, Tutu et al., (2018)
+                  if (use_constant_lithosphere_thickness)
+                    deltaT = this->get_adiabatic_conditions().temperature(in.position[i]) - 293;              
+
                   out.densities[i] = 3.27e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
                                                + pressure * out.compressibilities[i]);
                   material_type = 2;
 
-                  if (use_cratons || use_constant_lithosphere_thickness)
+                  if (use_cratons)
                     {
                       // Density increase along adiabatic profile
                       const double craton_density = 3.27e3 * ( 1. - out.thermal_expansion_coefficients[i] *
