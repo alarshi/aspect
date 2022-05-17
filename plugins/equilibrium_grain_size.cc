@@ -1287,12 +1287,6 @@ namespace aspect
                              Patterns::Double (),
                              "The maximum thermal expansivity that is allowed in the whole model domain. "
                              "Units: 1/K.");
-          prm.declare_entry ("Minimum grain size", "1e-5",
-                             Patterns::Double (0),
-                             "The minimum grain size that is used for the material model. This parameter "
-                             "is introduced to limit local viscosity contrasts, but still allows for a widely "
-                             "varying viscosity over the whole mantle range. "
-                             "Units: m.");
           prm.declare_entry ("Data directory", "$ASPECT_SOURCE_DIR/data/material-model/steinberger/",
                              Patterns::DirectoryName (),
                              "The path to the model data. The path may also include the special "
@@ -1410,7 +1404,7 @@ namespace aspect
           Utilities::AsciiDataBase<dim>::declare_parameters(prm, "../../input_data/", "thermal_expansivity_steinberger_calderwood.txt", "Thermal expansivity profile");
 
           // Crustal boundary depths parameters
-          Utilities::AsciiDataBoundary<dim>::declare_parameters(prm,  "../../input_data/crust1.0/", "crustal_structure.txt", "Crustal depths");
+          Utilities::AsciiDataBoundary<dim>::declare_parameters(prm,  "../../input_data/", "crustal_structure.txt", "Crustal depths");
         }
         prm.leave_subsection();
       }
@@ -1473,7 +1467,7 @@ namespace aspect
                                                   (Utilities::split_string_list(prm.get ("Grain growth rate constant")));
           grain_growth_exponent                 = Utilities::string_to_double
                                                   (Utilities::split_string_list(prm.get ("Grain growth exponent")));
-          minimum_grain_size                    = prm.get_double("Minimum grain size");
+          min_grain_size                        = prm.get_double("Minimum grain size");
           reciprocal_required_strain            = Utilities::string_to_double
                                                   (Utilities::split_string_list(prm.get ("Reciprocal required strain")));
           equilibrate_grain_size                = prm.get_bool ("Use equilibrium grain size");
@@ -1514,7 +1508,6 @@ namespace aspect
           max_specific_heat                     = prm.get_double ("Maximum specific heat");
           min_thermal_expansivity               = prm.get_double ("Minimum thermal expansivity");
           max_thermal_expansivity               = prm.get_double ("Maximum thermal expansivity");
-          min_grain_size                        = prm.get_double ("Minimum grain size");
 
           if (grain_growth_activation_energy.size() != grain_growth_activation_volume.size() ||
               grain_growth_activation_energy.size() != grain_growth_rate_constant.size() ||

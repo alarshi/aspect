@@ -1,0 +1,6 @@
+# 2D version of the crustal structure dataset with zero thickness. 
+# Only next line is parsed in format: [nx] [ny] [nz] because of keyword "POINTS:"
+# POINTS: 2 1
+# Columns: x (m) crustal_depth (m)
+0 -1
+100000 -1
