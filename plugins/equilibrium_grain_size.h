@@ -329,6 +329,11 @@ namespace aspect
                                     const std::vector<double> &compositional_fields,
                                     const Point<dim> &position) const;
 
+        double specific_heat (const double temperature,
+                                      const double pressure,
+                                      const std::vector<double> &compositional_fields,
+                                      const Point<dim> &position) const;
+
         /**
          * Returns the p-wave velocity as calculated by HeFESTo.
          */

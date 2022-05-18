@@ -895,6 +895,33 @@ namespace aspect
 
 
     template <int dim>
+    double
+    EquilibriumGrainSize<dim>::
+    specific_heat (const double temperature,
+                   const double pressure,
+                   const std::vector<double> &compositional_fields,
+                   const Point<dim> &/*position*/) const
+    {
+      double cp = 0.0;
+      if (!use_table_properties)
+        return reference_specific_heat;
+      else
+        {
+          if (n_material_data == 1)
+            cp = material_lookup[0]->specific_heat(temperature,pressure);
+          else
+            {
+              for (unsigned i = 0; i < n_material_data; i++)
+                cp += compositional_fields[i] * material_lookup[i]->specific_heat(temperature,pressure);
+            }
+        }
+      cp = std::max(std::min(cp,max_specific_heat),min_specific_heat);
+      return cp;
+    }
+
+
+
+    template <int dim>
     void
     EquilibriumGrainSize<dim>::
     evaluate(const typename Interface<dim>::MaterialModelInputs &in, typename Interface<dim>::MaterialModelOutputs &out) const
@@ -994,6 +1021,7 @@ namespace aspect
               out.densities[i] = density(new_temperature, pressure, in.composition[i], in.position[i]);
               out.thermal_expansion_coefficients[i] = thermal_expansivity(new_temperature, pressure, in.composition[i], in.position[i]);
               out.compressibilities[i] = compressibility(new_temperature, pressure, in.composition[i], in.position[i]);
+              out.specific_heat[i] = specific_heat(new_temperature, pressure, in.composition[i], in.position[i]);
             }
           else
             {
