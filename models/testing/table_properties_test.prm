@@ -99,7 +99,7 @@ end
 subsection Mesh refinement
   set Initial adaptive refinement        = 0
 
-  set Initial global refinement          = 3
+  set Initial global refinement          = 5
 
   set Refinement fraction                = 0.0
   set Coarsening fraction                = 0.0
