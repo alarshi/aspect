@@ -1004,6 +1004,7 @@ namespace aspect
               const double sigmoid = 1.0 / (1.0 + std::exp( (uppermost_mantle_thickness - depth)/sigmoid_width));
 
               new_temperature = initial_temperature + (mantle_temperature - initial_temperature) * sigmoid;
+
             }
 
           if (PrescribedTemperatureOutputs<dim> *prescribed_temperature_out = out.template get_additional_output<PrescribedTemperatureOutputs<dim> >())
@@ -1018,10 +1019,10 @@ namespace aspect
                   seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
                 }
 
-              out.densities[i] = density(new_temperature, pressure, in.composition[i], in.position[i]);
-              out.thermal_expansion_coefficients[i] = thermal_expansivity(new_temperature, pressure, in.composition[i], in.position[i]);
-              out.compressibilities[i] = compressibility(new_temperature, pressure, in.composition[i], in.position[i]);
-              out.specific_heat[i] = specific_heat(new_temperature, pressure, in.composition[i], in.position[i]);
+              out.densities[i] = density(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+              out.thermal_expansion_coefficients[i] = thermal_expansivity(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+              out.compressibilities[i] = compressibility(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+              out.specific_heat[i] = specific_heat(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
             }
           else
             {
