@@ -49,10 +49,7 @@ subsection Material model
   subsection Steinberger model
     set Data directory                   = $ASPECT_SOURCE_DIR/data/material-model/steinberger/
     set Material file names              = pyr-ringwood88.txt
-#    set Bilinear interpolation           = true
-#    set Latent heat                      = false
     set Reference viscosity              = 1e21
-#    set Thermal conductivity formulation = p-T-dependent
   end
 end
 
@@ -94,8 +91,6 @@ subsection Postprocess
 
   subsection Visualization
     set Interpolate output = false
-#    set Output format                 = gnuplot
-#    set List of output variables      = adiabat, named additional outputs, Vs anomaly, Vp anomaly, density
     set List of output variables      = adiabat, material properties, gravity, nonadiabatic temperature, nonadiabatic pressure, named additional outputs, Vs anomaly, Vp anomaly
     set Time between graphical output = 0
     subsection Vp anomaly

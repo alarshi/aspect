@@ -889,6 +889,8 @@ namespace aspect
           for (unsigned i = 0; i < n_material_data; i++)
             alpha += compositional_fields[i] * material_lookup[i]->thermal_expansivity(temperature,pressure);
         }
+
+      alpha = std::max(std::min(alpha,max_thermal_expansivity),min_thermal_expansivity);
       return alpha;
     }
 
@@ -905,16 +907,15 @@ namespace aspect
       double cp = 0.0;
       if (!use_table_properties)
         return reference_specific_heat;
+
+      if (n_material_data == 1)
+        cp = material_lookup[0]->specific_heat(temperature,pressure);
       else
         {
-          if (n_material_data == 1)
-            cp = material_lookup[0]->specific_heat(temperature,pressure);
-          else
-            {
-              for (unsigned i = 0; i < n_material_data; i++)
-                cp += compositional_fields[i] * material_lookup[i]->specific_heat(temperature,pressure);
-            }
+          for (unsigned i = 0; i < n_material_data; i++)
+            cp += compositional_fields[i] * material_lookup[i]->specific_heat(temperature,pressure);
         }
+
       cp = std::max(std::min(cp,max_specific_heat),min_specific_heat);
       return cp;
     }
@@ -1019,10 +1020,10 @@ namespace aspect
                   seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
                 }
 
-              out.densities[i] = density(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
-              out.thermal_expansion_coefficients[i] = thermal_expansivity(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
-              out.compressibilities[i] = compressibility(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
-              out.specific_heat[i] = specific_heat(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+              out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
+              out.thermal_expansion_coefficients[i] = thermal_expansivity(in.temperature[i], pressure, in.composition[i], in.position[i]);
+              out.compressibilities[i] = compressibility(in.temperature[i], pressure, in.composition[i], in.position[i]);
+              out.specific_heat[i] = specific_heat(in.temperature[i], pressure, in.composition[i], in.position[i]);
             }
           else
             {
@@ -1049,7 +1050,7 @@ namespace aspect
 
                   // Use adiabatic density increase when using constant lithosphere, Tutu et al., (2018)
                   if (use_constant_lithosphere_thickness)
-                    deltaT = this->get_adiabatic_conditions().temperature(in.position[i]) - 293;              
+                    deltaT = this->get_adiabatic_conditions().temperature(in.position[i]) - 293;
 
                   out.densities[i] = 3.27e3 * (1. - out.thermal_expansion_coefficients[i] * deltaT
                                                + pressure * out.compressibilities[i]);
@@ -1403,7 +1404,7 @@ namespace aspect
                              "faster than observed.");
           prm.declare_entry ("Use constant lithosphere thickness", "false",
                              Patterns::Bool (),
-                             "This parameter value determines if we want to a lithosphere with a constant thickness. " 
+                             "This parameter value determines if we want to a lithosphere with a constant thickness. "
                              "We can evaluate the effects of lithospheric thickness variations on the surface plate "
                              "motions using this. Currently, this parameter sets the lithosphere to a constant "
                              "thickness of 100 km.");

@@ -330,9 +330,9 @@ namespace aspect
                                     const Point<dim> &position) const;
 
         double specific_heat (const double temperature,
-                                      const double pressure,
-                                      const std::vector<double> &compositional_fields,
-                                      const Point<dim> &position) const;
+                              const double pressure,
+                              const std::vector<double> &compositional_fields,
+                              const Point<dim> &position) const;
 
         /**
          * Returns the p-wave velocity as calculated by HeFESTo.
@@ -452,7 +452,7 @@ namespace aspect
          * the value from the Steinberger & Calderwood reference viscosity profile.
          */
         double asthenosphere_viscosity;
-        
+
         /**
          * Parameter that determines if we want to use viscous and neutrally buoyant cratons as
          * another compositional field.

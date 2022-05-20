@@ -7,9 +7,6 @@ set End time                               = 0
 set Adiabatic surface temperature          = 1600.0
 set Use years in output instead of seconds = true
 set Additional shared libraries            = ../../plugins/libequilibrium_grain_size.so
-set Max nonlinear iterations               = 1
-set Nonlinear solver tolerance             = 1e-4
-set Nonlinear solver scheme                = iterated Advection and Stokes #single Advection, single Stokes #
 
 subsection Boundary temperature model
   set List of model names = spherical constant
@@ -82,8 +79,6 @@ subsection Material model
     set Use table properties = true
     set Data directory                   = $ASPECT_SOURCE_DIR/data/material-model/steinberger/
     set Material file names              = pyr-ringwood88.txt
-#    set Bilinear interpolation           = true
-#    set Latent heat                      = false
     set Viscosity                        = 1e21
     set Uppermost mantle thickness       = 4000e3
    
