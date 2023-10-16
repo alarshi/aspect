@@ -271,6 +271,8 @@ namespace aspect
       public:
         EquationOfState::MulticomponentIncompressible<dim> equation_of_state;
 
+        std::unique_ptr<Rheology::StrainDependent<dim>> strain_dependent_rheology;
+
         /**
          * Object that handles phase transitions.
          */

@@ -159,6 +159,25 @@ namespace aspect
           HealingMechanism
           get_healing_mechanism () const;
 
+          /**
+           * The factor specifying the amount of weakening of the
+           * cohesion over the prescribed strain interval (plastic or total strain).
+           */
+          std::vector<double> cohesion_strain_weakening_factors;
+
+          /**
+           * The factor specifying the amount of weakening of the
+           * internal friction angles over the prescribed strain interval
+           * (plastic or total strain).
+           */
+          std::vector<double> friction_strain_weakening_factors;
+
+          /**
+          * The factor specifying the amount of weakening over
+          * the prescribed strain interval (viscous or total strain).
+          */
+          std::vector<double> viscous_strain_weakening_factors;
+
         private:
 
           WeakeningMechanism weakening_mechanism;
@@ -178,19 +197,6 @@ namespace aspect
           std::vector<double> end_plastic_strain_weakening_intervals;
 
           /**
-           * The factor specifying the amount of weakening of the
-           * cohesion over the prescribed strain interval (plastic or total strain).
-           */
-          std::vector<double> cohesion_strain_weakening_factors;
-
-          /**
-           * The factor specifying the amount of weakening of the
-           * internal friction angles over the prescribed strain interval
-           * (plastic or total strain).
-           */
-          std::vector<double> friction_strain_weakening_factors;
-
-          /**
            * The start of the strain interval (viscous or total strain)
            * within which cohesion and angle of friction should be weakened.
            */
@@ -201,12 +207,6 @@ namespace aspect
            * within which cohesion and angle of friction should be weakened.
            */
           std::vector<double> end_viscous_strain_weakening_intervals;
-
-          /**
-           * The factor specifying the amount of weakening over
-           * the prescribed strain interval (viscous or total strain).
-           */
-          std::vector<double> viscous_strain_weakening_factors;
 
           /**
            * The healing rate used in the temperature dependent strain healing model.

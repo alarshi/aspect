@@ -8,7 +8,7 @@ import arviz as az
 basic_model = pymc.Model()
 
 true_alpha = 3e-5
-true_thickness = 140e3
+true_thickness = 140
 
 minerr = 1e100
 
@@ -17,7 +17,7 @@ def get_error(thickness, alpha):
 
 with basic_model:
     # Priors for unknown model parameters
-    test_thickness_values = pymc.Uniform("test_thickness_values", lower=50e3, upper=150e3)
+    test_thickness_values = pymc.Uniform("test_thickness_values", lower=50, upper=150)
     test_alpha_values     = pymc.Uniform("test_alpha_values", lower=3e-5, upper=5e-5)
 
     print(test_thickness_values.eval())
@@ -41,7 +41,8 @@ with basic_model:
     # fitting model here
     model_estimate = pymc.find_MAP(model=basic_model)
     step  = pymc.Slice() 
-    trace = pymc.sample(5000, step=step, return_inferencedata=False)
+    trace = pymc.sample(5000, step=step, return_inferencedata=True)
 
 with basic_model:
     az.plot_trace(trace, var_names=["test_thickness_values", "test_alpha_values"])
+    plt.show()

@@ -696,10 +696,10 @@ int main (int argc, char *argv[])
       // currently unwinding the stack if an unhandled exception is being
       // thrown to avoid MPI deadlocks.
       dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(n_remaining_arguments,
-                                                          remaining_arguments,
-                                                          (use_threads ?
-                                                           numbers::invalid_unsigned_int :
-                                                           1));
+                                                                  remaining_arguments,
+                                                                  (use_threads ?
+                                                                   numbers::invalid_unsigned_int :
+                                                                   1));
 
       if (run_unittests)
         {

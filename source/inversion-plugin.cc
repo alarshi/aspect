@@ -23,9 +23,11 @@
 
 #include "aspect/material_model/interface.h"
 #include "aspect/material_model/visco_plastic.h"
+#include "aspect/material_model/rheology/visco_plastic.h"
 #include "aspect/time_stepping/interface.h"
 #include <aspect/simulator.h>
 #include <aspect/utilities.h>
+#include <cstddef>
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/utilities.h>
 #include <world_builder/world.h>
@@ -108,18 +110,29 @@ Inversion<dim>::execute()
             }
           break;
         }
-      else if (parts.size() == 2 && parts[0] == "thermal-exp")
+      else if (parts.size() == 2 && ((parts[0] == "cohesion_factor") || (parts[0] == "friction_angle_factor") || (parts[0] == "strain_factor")))
         {
           const double new_value = dealii::Utilities::string_to_double(parts[1]);
-          this->get_pcout() << "TODO: thermal " << new_value << std::endl;
           MaterialModel::ViscoPlastic<dim> *material = dynamic_cast<MaterialModel::ViscoPlastic<dim>*>(
                                                          const_cast<MaterialModel::Interface<dim>*>(&this->get_material_model())
                                                        );
 
-          if (material != nullptr)
-            {
-              material->equation_of_state.thermal_expansivities[0] = new_value;
-            }
+          if (material != nullptr && parts[0] == "cohesion_factor")
+          {
+            this->get_pcout() << "cohesion value: " << new_value << std::endl;
+            material->strain_dependent_rheology->friction_strain_weakening_factors[0] = new_value;
+          }
+          else if (material != nullptr && parts[0] == "friction_angle_factor")
+          {
+            this->get_pcout() << "friction angle value: " << new_value << std::endl;
+            material->strain_dependent_rheology->friction_strain_weakening_factors[0] = new_value;
+          }        
+          else if (material != nullptr && parts[0] == "strain_factor")
+          {
+            this->get_pcout() << "strain weakening value: " << new_value << std::endl;
+            material->strain_dependent_rheology->viscous_strain_weakening_factors[0]  = new_value;
+          }
+            
         }
     }
 
