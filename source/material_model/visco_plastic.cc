@@ -347,6 +347,8 @@ namespace aspect
 
           EquationOfState::MulticomponentIncompressible<dim>::declare_parameters (prm);
 
+          Rheology::StrainDependent<dim>::declare_parameters (prm);
+
           Rheology::ViscoPlastic<dim>::declare_parameters(prm);
 
           // Equation of state parameters
@@ -439,6 +441,11 @@ namespace aspect
           rheology = std::make_unique<Rheology::ViscoPlastic<dim>>();
           rheology->initialize_simulator (this->get_simulator());
           rheology->parse_parameters(prm, std::make_unique<std::vector<unsigned int>>(phase_function.n_phases_for_each_composition()));
+
+          // Strain dependent rheology terms
+          strain_dependent_rheology = std::make_unique<Rheology::StrainDependent<dim>>();
+          strain_dependent_rheology->initialize_simulator (this->get_simulator());
+          strain_dependent_rheology->parse_parameters(prm);
         }
         prm.leave_subsection();
       }
