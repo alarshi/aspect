@@ -605,8 +605,16 @@ run_simulator(const std::string &raw_input_as_string,
           std::ofstream file(output_directory + "original.prm");
           file << raw_input_as_string;
         }
-
-      simulator.run();
+        try
+        {
+          simulator.run();
+        }
+         
+        catch (const std::exception &exc)
+        {
+          std::cout << "error" << std::endl;
+        }
+          
     }
 }
 

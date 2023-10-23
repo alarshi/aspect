@@ -99,18 +99,19 @@ Inversion<dim>::execute()
           this->get_pcout() << "loading WB " << parts[1] << std::endl;
           sim.world_builder = std::make_shared<WorldBuilder::World>(parts[1]);
         }
-      else if (parts[0] == "continue")
-        {
-          if (sim.world_builder.get() == nullptr && this->get_parameters().world_builder_file != "")
-            {
-              // If the user did not load a different WB file and ASPECT freed the original GWB, just reload the old file
-              // specified in the .prm:
-              this->get_pcout() << "reloading WB " << this->get_parameters().world_builder_file << std::endl;
-              sim.world_builder = std::make_shared<WorldBuilder::World>(this->get_parameters().world_builder_file);
-            }
-          break;
-        }
-      else if (parts.size() == 2 && ((parts[0] == "cohesion_factor") || (parts[0] == "friction_angle_factor") || (parts[0] == "strain_factor")))
+      // else if (parts[0] == "continue")
+      //   {
+      //     if (sim.world_builder.get() == nullptr && this->get_parameters().world_builder_file != "")
+      //       {
+      //         // If the user did not load a different WB file and ASPECT freed the original GWB, just reload the old file
+      //         // specified in the .prm:
+      //         this->get_pcout() << "reloading WB " << this->get_parameters().world_builder_file << std::endl;
+      //         sim.world_builder = std::make_shared<WorldBuilder::World>(this->get_parameters().world_builder_file);
+      //       }
+      //     break;
+      //   }
+      else if ((parts.size() == 2 && ((parts[0] == "cohesion_factor") || (parts[0] == "friction_angle_factor") || (parts[0] == "strain_factor"))) ||
+      (parts[0] == "continue"))
         {
           const double new_value = dealii::Utilities::string_to_double(parts[1]);
           MaterialModel::ViscoPlastic<dim> *material = dynamic_cast<MaterialModel::ViscoPlastic<dim>*>(
