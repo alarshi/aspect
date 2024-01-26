@@ -133,9 +133,9 @@ namespace aspect
           compute_derivative (const double angle_internal_friction,
                               const double effective_strain_rate) const;
 
-        private:
-
           std::vector<double> angles_internal_friction;
+
+        private:
           std::vector<double> cohesions;
           double max_yield_stress;
 

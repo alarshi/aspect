@@ -18,6 +18,7 @@
   <http://www.gnu.org/licenses/>.
 */
 
+#include "aspect/material_model/rheology/drucker_prager.h"
 #include <aspect/material_model/visco_plastic.h>
 #include <aspect/utilities.h>
 #include <deal.II/fe/fe_values.h>
@@ -443,9 +444,9 @@ namespace aspect
           rheology->parse_parameters(prm, std::make_unique<std::vector<unsigned int>>(phase_function.n_phases_for_each_composition()));
 
           // Strain dependent rheology terms
-          strain_dependent_rheology = std::make_unique<Rheology::StrainDependent<dim>>();
-          strain_dependent_rheology->initialize_simulator (this->get_simulator());
-          strain_dependent_rheology->parse_parameters(prm);
+          drucker_prager_rheology = std::make_unique<Rheology::DruckerPrager<dim>>();
+          drucker_prager_rheology->initialize_simulator (this->get_simulator());
+          drucker_prager_rheology->parse_parameters(prm);
         }
         prm.leave_subsection();
       }
