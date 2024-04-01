@@ -2227,12 +2227,14 @@ namespace aspect
             if (sim.parameters.n_expensive_stokes_solver_steps > 0)
               solver_controls.push_back(solver_control_expensive);
 
-            Utilities::throw_linear_solver_failure_exception("iterative Stokes solver",
-                                                             "StokesMatrixFreeHandlerImplementation::solve",
-                                                             solver_controls,
-                                                             exc,
-                                                             sim.mpi_communicator,
-                                                             sim.parameters.output_directory+"solver_history.txt");
+            sim.pcout << "Stop program because solver fails... " << std::endl;
+            exit(1);
+            // Utilities::throw_linear_solver_failure_exception("iterative Stokes solver",
+            //                                                  "StokesMatrixFreeHandlerImplementation::solve",
+            //                                                  solver_controls,
+            //                                                  exc,
+            //                                                  sim.mpi_communicator,
+            //                                                  sim.parameters.output_directory+"solver_history.txt");
           }
       }
 

@@ -479,7 +479,7 @@ namespace aspect
                                       advection_field.compositional_variable,
                                       solver_control);
 
-
+        exit(0);
         Utilities::throw_linear_solver_failure_exception("iterative advection solver",
                                                          "Simulator::solve_advection",
                                                          std::vector<SolverControl> {solver_control},
