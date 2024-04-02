@@ -22,6 +22,7 @@
 #define _aspect_material_model_visco_plastic_h
 
 #include "aspect/material_model/rheology/drucker_prager.h"
+#include "aspect/material_model/rheology/strain_dependent.h"
 #include <aspect/simulator_access.h>
 #include <aspect/material_model/interface.h>
 #include <aspect/material_model/equation_of_state/multicomponent_incompressible.h>
@@ -231,6 +232,8 @@ namespace aspect
          */
         bool
         is_yielding (const MaterialModelInputs<dim> &in) const;
+
+        std::unique_ptr<Rheology::StrainDependent<dim>> strain_dependent_rheology;
 
       private:
 

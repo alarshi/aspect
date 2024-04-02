@@ -30,7 +30,6 @@
 #include <cstddef>
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/utilities.h>
-#include <ostream>
 #include <world_builder/world.h>
 #include <deal.II/grid/tria.h>
 
@@ -100,29 +99,30 @@ Inversion<dim>::execute()
           this->get_pcout() << "loading WB " << parts[1] << std::endl;
           sim.world_builder = std::make_shared<WorldBuilder::World>(parts[1]);
         }
-      else if (parts[0] == "continue")
-        {
-          if (sim.world_builder.get() == nullptr && this->get_parameters().world_builder_file != "")
-            {
-              // If the user did not load a different WB file and ASPECT freed the original GWB, just reload the old file
-              // specified in the .prm:
-              this->get_pcout() << "reloading WB " << this->get_parameters().world_builder_file << std::endl;
-              sim.world_builder = std::make_shared<WorldBuilder::World>(this->get_parameters().world_builder_file);
-            }
-          break;
-        }
-      else if (parts.size() == 2 && parts[0] == "internal-angle")
+      else if ((parts.size() == 2 && ((parts[0] == "cohesion_factor") || (parts[0] == "friction_angle_factor") || (parts[0] == "strain_factor"))) ||
+      (parts[0] == "continue"))
         {
           const double new_value = dealii::Utilities::string_to_double(parts[1]);
           MaterialModel::ViscoPlastic<dim> *material = dynamic_cast<MaterialModel::ViscoPlastic<dim>*>(
                                                          const_cast<MaterialModel::Interface<dim>*>(&this->get_material_model())
                                                        );
 
-          if (material != nullptr && parts[0] == "internal-angle")
+          if (material != nullptr && parts[0] == "cohesion_factor")
           {
-            this->get_pcout() << "internal angle of friction: " << new_value << std::endl;
-            material->drucker_prager_rheology->angles_internal_friction[0] = new_value;
+            this->get_pcout() << "cohesion value: " << new_value << std::endl;
+            material->strain_dependent_rheology->friction_strain_weakening_factors[0] = new_value;
           }
+          else if (material != nullptr && parts[0] == "friction_angle_factor")
+          {
+            this->get_pcout() << "friction angle value: " << new_value << std::endl;
+            material->strain_dependent_rheology->friction_strain_weakening_factors[0] = new_value;
+          }        
+          else if (material != nullptr && parts[0] == "strain_factor")
+          {
+            this->get_pcout() << "strain weakening value: " << new_value << std::endl;
+            material->strain_dependent_rheology->viscous_strain_weakening_factors[0]  = new_value;
+          }
+            
         }
     }
 
