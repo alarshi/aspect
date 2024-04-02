@@ -2228,7 +2228,7 @@ namespace aspect
               solver_controls.push_back(solver_control_expensive);
 
             sim.pcout << "Stop program because solver fails... " << std::endl;
-            exit(1);
+            return std::pair<double,double>(1, 1);
             // Utilities::throw_linear_solver_failure_exception("iterative Stokes solver",
             //                                                  "StokesMatrixFreeHandlerImplementation::solve",
             //                                                  solver_controls,
