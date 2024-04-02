@@ -110,7 +110,7 @@ Inversion<dim>::execute()
           if (material != nullptr && parts[0] == "cohesion_factor")
           {
             this->get_pcout() << "cohesion value: " << new_value << std::endl;
-            material->strain_dependent_rheology->friction_strain_weakening_factors[0] = new_value;
+            material->strain_dependent_rheology->cohesion_strain_weakening_factors[0] = new_value;
           }
           else if (material != nullptr && parts[0] == "friction_angle_factor")
           {
