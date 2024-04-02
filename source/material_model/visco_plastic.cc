@@ -444,9 +444,9 @@ namespace aspect
           rheology->parse_parameters(prm, std::make_unique<std::vector<unsigned int>>(phase_function.n_phases_for_each_composition()));
 
           // Strain dependent rheology terms
-          drucker_prager_rheology = std::make_unique<Rheology::DruckerPrager<dim>>();
-          drucker_prager_rheology->initialize_simulator (this->get_simulator());
-          drucker_prager_rheology->parse_parameters(prm);
+          strain_dependent_rheology = std::make_unique<Rheology::StrainDependent<dim>>();
+          strain_dependent_rheology->initialize_simulator (this->get_simulator());
+          strain_dependent_rheology->parse_parameters(prm);
         }
         prm.leave_subsection();
       }
