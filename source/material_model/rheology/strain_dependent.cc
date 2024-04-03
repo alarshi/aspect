@@ -486,6 +486,8 @@ namespace aspect
         const double weakening_cohesion = 1. + (1. - cohesion_strain_weakening_factors[j]) * strain_fraction;
         const double weakening_friction = 1. + (1. - friction_strain_weakening_factors[j]) * strain_fraction;
 
+        // std::cout << friction_strain_weakening_factors[j] << std::endl;
+
         return std::make_pair (weakening_cohesion, weakening_friction);
       }
 
