@@ -149,11 +149,12 @@ namespace aspect
            */
           const double R0, R1;
 
-          /**
-           * Return the topography of the surface directly above the point given
-           * by the coordinates stored in the argument.
-           */
-          double topography_for_point (const Point<dim> &x_y_z) const;
+          public:
+            /**
+             * Return the topography of the surface directly above the point given
+             * by the coordinates stored in the argument.
+             */
+            double topography_for_point (const Point<dim> &x_y_z) const;
       };
 
     }
@@ -215,6 +216,10 @@ namespace aspect
          * these definitions.
          */
         double depth(const Point<dim> &position) const override;
+
+        double depth_from_deformed_surface(const Point<dim> &position) const override;
+
+        std::unique_ptr<GeometryModel::internal::SphericalManifoldWithTopography<dim>> spherical_model_with_topography;
 
         /**
          * Return the height of the given position relative to

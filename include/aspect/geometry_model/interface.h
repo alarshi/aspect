@@ -132,6 +132,9 @@ namespace aspect
         virtual
         double depth(const Point<dim> &position) const = 0;
 
+        virtual
+        double depth_from_deformed_surface(const Point<dim> &position) const = 0;
+
         /**
          * Return the height of the given position relative to the reference
          * surface of the model. Positive returned value means that the point

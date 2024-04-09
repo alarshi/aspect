@@ -675,6 +675,16 @@ namespace aspect
 
     template <int dim>
     double
+    SphericalShell<dim>::depth_from_deformed_surface(const Point<dim> &position) const
+    {
+      return std::min (std::max ((R1 + spherical_model_with_topography->topography_for_point(position)) -
+           position.norm(), 0.), maximal_depth());
+    }
+
+
+
+    template <int dim>
+    double
     SphericalShell<dim>::height_above_reference_surface(const Point<dim> &position) const
     {
       return position.norm()-R1;
