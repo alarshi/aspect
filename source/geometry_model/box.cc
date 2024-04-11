@@ -268,6 +268,14 @@ namespace aspect
       return std::min (std::max (d, 0.), maximal_depth());
     }
 
+    
+    template <int dim>
+    double
+    Box<dim>::depth_from_deformed_surface(const Point<dim> &) const
+    {
+      return 0.0;
+    }
+
 
     template <int dim>
     double

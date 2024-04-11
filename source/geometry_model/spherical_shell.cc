@@ -677,8 +677,11 @@ namespace aspect
     double
     SphericalShell<dim>::depth_from_deformed_surface(const Point<dim> &position) const
     {
-      return std::min (std::max ((R1 + spherical_model_with_topography->topography_for_point(position)) -
-           position.norm(), 0.), maximal_depth());
+      if (this->simulator_is_past_initialization())
+        return std::max (R1 + manifold->topography_for_point(position) -
+            position.norm(), 0.);
+      else
+        return std::min (std::max (R1-position.norm(), 0.), maximal_depth());
     }
 
 

@@ -266,6 +266,8 @@ namespace aspect
          */
         double depth(const Point<dim> &position) const override;
 
+        double depth_from_deformed_surface(const Point<dim> &position) const override;
+
         /**
          * Return the height of the given position relative to the outer
          * radius.

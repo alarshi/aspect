@@ -94,6 +94,14 @@ namespace aspect
 
 
     template <int dim>
+    double
+    Sphere<dim>::depth_from_deformed_surface(const Point<dim> &) const
+    {
+      return 0;
+    }
+
+
+    template <int dim>
     Point<dim>
     Sphere<dim>::representative_point(const double depth) const
     {

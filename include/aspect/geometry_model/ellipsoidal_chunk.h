@@ -176,6 +176,8 @@ namespace aspect
         double
         depth(const Point<dim> &position) const override;
 
+        double depth_from_deformed_surface(const Point<dim> &position) const override;
+
         /**
          * Placeholder for a function returning the height of the given
          * position relative to the reference model surface.

@@ -253,6 +253,12 @@ namespace aspect
       return std::max (0., std::min (point2[0]-position.norm(), maximal_depth()));
     }
 
+    template <int dim>
+    double
+    TwoMergedChunks<dim>::depth_from_deformed_surface(const Point<dim> &) const
+    {
+      return 0;
+    }
 
 
     template <int dim>

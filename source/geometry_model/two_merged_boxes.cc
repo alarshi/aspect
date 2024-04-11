@@ -276,6 +276,14 @@ namespace aspect
 
     template <int dim>
     double
+    TwoMergedBoxes<dim>::depth_from_deformed_surface(const Point<dim> &) const
+    {
+      return 0;
+    }
+
+
+    template <int dim>
+    double
     TwoMergedBoxes<dim>::height_above_reference_surface(const Point<dim> &position) const
     {
       return (position(dim-1)-lower_box_origin[dim-1]) - extents[dim-1];

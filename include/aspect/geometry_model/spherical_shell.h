@@ -219,8 +219,6 @@ namespace aspect
 
         double depth_from_deformed_surface(const Point<dim> &position) const override;
 
-        std::unique_ptr<GeometryModel::internal::SphericalManifoldWithTopography<dim>> spherical_model_with_topography;
-
         /**
          * Return the height of the given position relative to
          * the outer radius of the shell.

@@ -612,6 +612,14 @@ namespace aspect
       return std::max(std::min(-manifold->pull_back(position)[dim-1], maximal_depth()), 0.0);
     }
 
+    
+    template <int dim>
+    double
+    EllipsoidalChunk<dim>::depth_from_deformed_surface(const Point<dim> &) const
+    {
+      return 0.0;
+    }
+
     template <int dim>
     double
     EllipsoidalChunk<dim>::height_above_reference_surface(const Point<dim> &/*position*/) const
