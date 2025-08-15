@@ -156,7 +156,10 @@ namespace aspect
 
           // not strictly correct if thermal expansivities are different, since we are interpreting
           // these compositions as volume fractions, but the error introduced should not be too bad.
-          out.densities[i] = MaterialUtilities::average_value (volume_fractions, eos_outputs.densities, MaterialUtilities::arithmetic);
+          if (use_variable_crustal_density && in.composition[i][0] >= 2600)
+            out.densities[i] = in.composition[i][0]; 
+          else
+            out.densities[i] = MaterialUtilities::average_value (volume_fractions, eos_outputs.densities, MaterialUtilities::arithmetic);
           out.thermal_expansion_coefficients[i] = MaterialUtilities::average_value (volume_fractions, eos_outputs.thermal_expansion_coefficients, MaterialUtilities::arithmetic);
           out.specific_heat[i] = MaterialUtilities::average_value (volume_fractions, eos_outputs.specific_heat_capacities, MaterialUtilities::arithmetic);
 
@@ -391,6 +394,10 @@ namespace aspect
                              "those corresponding to chemical compositions. "
                              "If only one value is given, then all use the same value. "
                              "Units: $\\frac{\\text{W}{\\text{m}\\text{K}}$.");
+          prm.declare_entry ("Use variable crustal densities", "false",
+                             Patterns::Bool (),
+                             "Whether to use variable crustal densities taken as an input from as. "
+                             "ascii data boundary file. ");
         }
         prm.leave_subsection();
       }
@@ -442,6 +449,7 @@ namespace aspect
 
           rheology = std::make_unique<Rheology::ViscoPlastic<dim>>();
           rheology->initialize_simulator (this->get_simulator());
+          use_variable_crustal_density = prm.get_bool ("Use variable crustal densities");
 
           use_dominant_phase_for_viscosity = prm.get_bool ("Use dominant phase for viscosity");
           if (use_dominant_phase_for_viscosity)

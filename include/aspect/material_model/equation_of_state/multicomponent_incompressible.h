@@ -117,6 +117,11 @@ namespace aspect
            * for the background field.
            */
           std::vector<double> specific_heats;
+
+          /**
+           * Whether to use variable crustal density, which is currently implemented through ascii data boundary.
+           */
+          bool use_variable_crustal_density;
       };
     }
   }

@@ -276,6 +276,11 @@ namespace aspect
         bool use_dominant_phase_for_viscosity;
 
         /**
+         * Bool to determine whethere to use variable crustal densities.
+         */
+        bool use_variable_crustal_density;
+
+        /**
          * Object that handles discrete phase transitions for the rheology if requested by the variable use_dominant_phase_for_viscosity.
          */
         std::unique_ptr<MaterialUtilities::PhaseFunctionDiscrete<dim>> phase_function_discrete;

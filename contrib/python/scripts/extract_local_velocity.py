@@ -173,9 +173,9 @@ refinement_level = 2
 # output_lateral_resolution = 0.25 # 0.25 degree lateral resolution
 output_radius_resolution = 100e3 # 10 km radial resolution
 output_lateral_resolution = 2.5 # 0.25 degree lateral resolution
-radius_bounds = np.array([4770e3, 6360e3]) # Radius bounds of the regional model
-latitude_bounds = np.array([-20, -55]) # Latitude bounds of the regional model
-longitude_bounds = np.array([152, 210]) # Longitude bounds of the regional model
+radius_bounds = np.array([5971e3, 6371e3]) # Radius bounds of the regional model
+latitude_bounds = np.array([20, 50]) # Latitude bounds of the regional model
+longitude_bounds = np.array([240, 290]) # Longitude bounds of the regional model
 
 # Load in the global model
 model = simple.OpenDataFile(input_data)
