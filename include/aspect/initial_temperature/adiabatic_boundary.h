@@ -80,6 +80,7 @@ namespace aspect
         double surface_temperature;
         double temperature_gradient;
         types::boundary_id surface_boundary_id;
+        bool use_variable_isotherm_temperatures;
 
     };
   }

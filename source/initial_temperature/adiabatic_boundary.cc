@@ -43,9 +43,12 @@ namespace aspect
       std::set<types::boundary_id> surface_boundary_set;
       surface_boundary_set.insert(surface_boundary_id);
 
+      if (use_variable_isotherm_temperatures)
+        Utilities::AsciiDataBoundary<dim>::initialize(surface_boundary_set, 2);
+      else
       // The input ascii table contains one data column (LAB depths(m)) in addition to the coordinate columns.
-      Utilities::AsciiDataBoundary<dim>::initialize(surface_boundary_set,
-                                                    1);
+        Utilities::AsciiDataBoundary<dim>::initialize(surface_boundary_set,
+                                                      1);
     }
 
     template <int dim>
@@ -55,10 +58,15 @@ namespace aspect
       const double depth = this->get_geometry_model().depth(position);
       const double isotherm_depth              =
         Utilities::AsciiDataBoundary<dim>::get_data_component(surface_boundary_id, position, 0);
+
+      double isotherm_temperature_input = isotherm_temperature;
+
+      if (use_variable_isotherm_temperatures)
+        isotherm_temperature_input = Utilities::AsciiDataBoundary<dim>::get_data_component(surface_boundary_id, position, 1);
       if (depth > isotherm_depth)
-        return isotherm_temperature + (depth - isotherm_depth) * temperature_gradient;
+        return isotherm_temperature_input + (depth - isotherm_depth) * temperature_gradient;
       else
-        return surface_temperature + (depth/isotherm_depth) * (isotherm_temperature - surface_temperature);
+        return surface_temperature + (depth/isotherm_depth) * (isotherm_temperature_input - surface_temperature);
     }
 
     template <int dim>
@@ -83,6 +91,12 @@ namespace aspect
                              Patterns::Double (0.),
                              "The value of the adiabatic temperature gradient. "
                              "Units: \\si{\\kelvin\\per\\meter}.");
+          prm.declare_entry ("Use variable isotherm temperatures", "false",
+                             Patterns::Bool (),
+                             "Whether to use variable isotherm temperatures taken as an input from "
+                             "the ascii data boundary file. If true, the second column in the ascii data file "
+                             "is interpreted as the isotherm temperature. If false, the second column is ignored "
+                             "and only the first column is used for isotherm depth.");
         }
         prm.leave_subsection();
       }
@@ -102,6 +116,7 @@ namespace aspect
           isotherm_temperature = prm.get_double("Isotherm temperature");
           surface_temperature  = prm.get_double("Surface temperature");
           temperature_gradient = prm.get_double("Adiabatic temperature gradient");
+          use_variable_isotherm_temperatures = prm.get_bool ("Use variable isotherm temperatures");
         }
         prm.leave_subsection();
       }
