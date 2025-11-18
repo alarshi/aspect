@@ -2506,6 +2506,13 @@ namespace aspect
             else
               return y;
           }
+          case Utilities::Operator::potential_temperature:
+          {
+            if (x == 1273.)
+              return y;
+            else
+              return x;
+          }
           default:
           {
             Assert (false, ExcInternalError());
@@ -2540,6 +2547,8 @@ namespace aspect
             operator_list[i] = Operator(Operator::maximum);
           else if (operator_names[i] == "replace if valid")
             operator_list[i] = Operator(Operator::replace_if_valid);
+          else if (operator_names[i] == "potential temperature")
+            operator_list[i] = Operator(Operator::potential_temperature);
           else
             AssertThrow(false,
                         ExcMessage ("ASPECT only accepts the following operators: "
@@ -2554,7 +2563,7 @@ namespace aspect
 
     const std::string get_model_operator_options()
     {
-      return "add|subtract|minimum|maximum|replace if valid";
+      return "add|subtract|minimum|maximum|replace if valid|potential temperature";
     }
 
 

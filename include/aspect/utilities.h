@@ -928,7 +928,8 @@ namespace aspect
           subtract,
           minimum,
           maximum,
-          replace_if_valid
+          replace_if_valid,
+          potential_temperature
         };
 
         /**
