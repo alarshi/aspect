@@ -22,6 +22,7 @@
 #include <aspect/initial_temperature/adiabatic_boundary.h>
 #include <aspect/geometry_model/interface.h>
 #include <aspect/utilities.h>
+#include <aspect/adiabatic_conditions/interface.h>
 #include <deal.II/base/signaling_nan.h>
 
 namespace aspect
@@ -61,12 +62,16 @@ namespace aspect
 
       double isotherm_temperature_input = isotherm_temperature;
 
+      if (this->get_adiabatic_conditions().is_initialized())
+     {
       if (use_variable_isotherm_temperatures)
         isotherm_temperature_input = Utilities::AsciiDataBoundary<dim>::get_data_component(surface_boundary_id, position, 1);
       if (depth > isotherm_depth)
         return isotherm_temperature_input + (depth - isotherm_depth) * temperature_gradient;
       else
-        return surface_temperature + (depth/isotherm_depth) * (isotherm_temperature_input - surface_temperature);
+       return surface_temperature + (depth/isotherm_depth) * (isotherm_temperature_input - surface_temperature);
+     }
+      return 0;
     }
 
     template <int dim>
